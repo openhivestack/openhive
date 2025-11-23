@@ -27,7 +27,7 @@ export async function recordMetric(data: MetricData) {
         userId: data.userId,
         organizationId: data.organizationId,
         userAgent: data.userAgent,
-        context: data.context ?? PrismaClient.JsonNull,
+        context: data.context ?? {}
       },
     });
   } catch (error) {

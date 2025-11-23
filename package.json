@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "ui": "npx shadcn@latest",
-    "commit": "git add . && cz",
+    "commit": "git add . && cz && git push",
     "generate": "infisical run --path /common -- prisma generate",
     "migrate": "infisical run --path /common -- prisma migrate dev",
     "reset": "infisical run --path /common -- prisma migrate reset",
