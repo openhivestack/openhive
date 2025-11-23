@@ -32,7 +32,7 @@ export async function GET(req: NextRequest, { params }: AgentParams) {
       return NextResponse.json({ message: "Agent not found" }, { status: 404 });
     }
     const agentVersion = agent.versions.find(
-      (v) => v.tags.includes(versionOrTag) || v.version === versionOrTag
+      (v: any) => v.tags.includes(versionOrTag) || v.version === versionOrTag
     );
 
     if (!agentVersion) {
