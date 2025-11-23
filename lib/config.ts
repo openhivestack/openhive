@@ -1,0 +1,14 @@
+export const config = {
+  appName: "OpenHive",
+  appDescription: "The Command Center for AI Agents",
+  appUrl: "https://openhive.sh",
+  appVersion: "0.1.0",
+  appAuthor: "OpenHive",
+  appAuthorUrl: "https://openhive.sh",
+  appAuthorEmail: "contact@openhive.sh",
+  appAuthorTwitter: "https://twitter.com/openhive",
+  appAuthorGitHub: "https://github.com/openhive",
+  appAuthorLinkedIn: "https://linkedin.com/company/openhive",
+  appAuthorFacebook: "https://facebook.com/openhive",
+  appAuthorInstagram: "https://instagram.com/openhive",
+};
