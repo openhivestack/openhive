@@ -2,6 +2,12 @@ name: Prisma
 
 on:
   workflow_dispatch:
+    inputs:
+      prisma_version:
+        description: "Prisma version to use"
+        required: false
+        default: "6.19.0"
+        type: string
 
 jobs:
   prisma:
@@ -21,4 +27,4 @@ jobs:
         run: npm install
 
       - name: Generate Prisma client
-        run: prisma deploy
+        run: npx prisma@${{ github.event.inputs.prisma_version }} deploy
