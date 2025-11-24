@@ -5,8 +5,14 @@ import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { AnimatedShinyText } from "./ui/animated-shiny-text";
+import { cn } from "@/lib/utils";
 
-export function CommandBox({ command }: { command: string }) {
+interface CommandBoxProps {
+  command: string;
+  className?: string;
+}
+
+export function CommandBox({ command, className }: CommandBoxProps) {
   const [isCopied, setIsCopied] = useState(false);
 
   const handleCopy = () => {
@@ -18,7 +24,7 @@ export function CommandBox({ command }: { command: string }) {
   };
 
   return (
-    <div className="relative rounded-lg bg-secondary pl-4 pr-2 py-1 border">
+    <div className={cn("relative rounded-lg bg-secondary pl-4 pr-2 py-1 border", className)}>
       <div className="flex items-center justify-between">
         <code className="text-xs text-muted-foreground font-bold">
           <AnimatedShinyText>{command}</AnimatedShinyText>

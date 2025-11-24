@@ -97,7 +97,7 @@ export default function HomePage() {
         <PromptBox />
       </div>
       <div className="w-full max-w-sm mx-auto">
-        <CommandBox command="npx @open-hive/cli create agent my-new-agent" />
+        <CommandBox command="npx @open-hive/cli agent create my-new-agent" />
       </div>
       <div className="grid w-full max-w-5xl grid-cols-1 gap-8 mx-auto md:grid-cols-3">
         <Card className="relative w-full max-w-[350px] overflow-hidden">
