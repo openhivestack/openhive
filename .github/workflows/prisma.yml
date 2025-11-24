@@ -28,3 +28,6 @@ jobs:
 
       - name: Generate Prisma client
         run: npx prisma@${{ github.event.inputs.prisma_version }} deploy
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DIRECT_URL: ${{ secrets.DIRECT_URL }}
