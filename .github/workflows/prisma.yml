@@ -18,7 +18,7 @@ jobs:
           node-version: 22
 
       - name: Install dependencies
-        run: npm install && npm install -g prisma
+        run: npm install && npm install -g prisma@6.19.0
 
       - name: Prisma Deploy
         run: prisma migrate deploy
