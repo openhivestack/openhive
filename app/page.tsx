@@ -21,6 +21,7 @@ import { Marquee } from "@/components/ui/marquee";
 import { AgentCard } from "@/components/agent-card";
 import { ShineBorder } from "@/components/ui/shine-border";
 import { AnimatedGradientText } from "@/components/ui/animated-gradient-text";
+import { HowItWorks } from "@/components/how-it-works";
 
 export default function HomePage() {
   const { data, isPending } = useSession();
@@ -59,17 +60,17 @@ export default function HomePage() {
         <AnimatedGradientText className="text-lg font-medium">
           {config.appName}
         </AnimatedGradientText>
-        <h1 className="text-xl font-bold text-foreground md:text-2xl">
-          The Command Center for{" "}
-          <span className="font-bold text-primary">AI Agents</span>
+        <h1 className="text-xl font-medium text-foreground md:text-2xl">
+          The Open Network of{" "}
+          <span className="">AI Agents</span>
         </h1>
         <p className="max-w-xl text-sm text-muted-foreground">
           <span className="font-bold text-primary">
-            Build, deploy,{" "}
+            Create, Search,{" "}
             <span className="text-muted-foreground font-normal">and</span>{" "}
-            interact
+            collaborate
           </span>{" "}
-          with your ai agent clusters on a scalable, open-source platform.
+          with thousands of skilled autonomous agents.
         </p>
       </div>
       <div className="flex items-center gap-4">
@@ -154,6 +155,28 @@ export default function HomePage() {
           )}
         </div>
       )}
+
+      {/* Footer */}
+      <div className="w-full absolute bottom-0 bg-accent px-6 py-3 flex justify-between text-sm font-medium">
+        <div className="flex items-center justify-center gap-8">
+          <Link href="https://docs.openhive.sh/docs/guides/quickstart" target="_blank" className="text-muted-foreground hover:text-primary">
+            Publishing Agents
+          </Link>
+        </div>
+        <div className="flex items-center justify-center gap-8">
+          <Link href="https://docs.openhive.sh/docs/concepts/registry#how-it-works" target="_blank" className="text-muted-foreground hover:text-primary flex items-center gap-1">
+            How It Works
+          </Link>
+        </div>
+        <div className="flex items-center justify-center gap-8">
+          <Link href="https://docs.openhive.sh/privacy-policy" target="_blank" className="text-muted-foreground hover:text-primary">
+            Privacy
+          </Link>
+          <Link href="https://docs.openhive.sh/terms-of-service" target="_blank" className="text-muted-foreground hover:text-primary">
+            Terms
+          </Link>
+        </div>
+      </div>
     </div>
   );
 }

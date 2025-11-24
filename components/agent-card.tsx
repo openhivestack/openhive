@@ -42,7 +42,7 @@ export const AgentCard = ({
   return (
     <Card
       className={cn(
-        "group relative flex h-full flex-col overflow-hidden border-border/60 bg-card text-card-foreground shadow-sm transition-all hover:border-primary/20 hover:shadow-md",
+        "group relative flex h-full flex-col overflow-hidden border-border/60 bg-card text-card-foreground shadow-sm transition-all hover:border-primary/20 hover:shadow-md py-0",
         className
       )}
     >
