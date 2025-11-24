@@ -53,12 +53,21 @@ class AgentsClient {
     this.baseUrl = `${baseUrl}/agent`;
   }
 
-  list(): Promise<Agent[]> {
-    return fetchApi<Agent[]>(this.baseUrl);
+  list(options?: { page?: number; limit?: number }): Promise<Agent[]> {
+    const params = new URLSearchParams();
+    if (options?.page) params.set("page", options.page.toString());
+    if (options?.limit) params.set("limit", options.limit.toString());
+    const queryString = params.toString();
+    const url = queryString ? `${this.baseUrl}?${queryString}` : this.baseUrl;
+    return fetchApi<Agent[]>(url);
   }
 
-  search(query: string): Promise<Agent[]> {
-    return fetchApi<Agent[]>(`${this.baseUrl}?q=${encodeURIComponent(query)}`);
+  search(query: string, options?: { page?: number; limit?: number }): Promise<Agent[]> {
+    const params = new URLSearchParams();
+    params.set("q", query);
+    if (options?.page) params.set("page", options.page.toString());
+    if (options?.limit) params.set("limit", options.limit.toString());
+    return fetchApi<Agent[]>(`${this.baseUrl}?${params.toString()}`);
   }
 
   create(agentData: Omit<Agent, "id" | "downloads">): Promise<Agent> {

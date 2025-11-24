@@ -1,6 +1,11 @@
 import { PrismaClient, Prisma } from "@prisma/client";
 import { AgentCard, AgentRegistry, Skill, QueryParser } from "@open-hive/sdk";
-import { UserSession, AgentWithVersionsAndSkills, Agent } from "./types";
+import {
+  UserSession,
+  AgentWithVersionsAndSkills,
+  Agent,
+  RegistryOptions,
+} from "./types";
 
 const prisma = new PrismaClient();
 
@@ -125,7 +130,10 @@ export class PrismaRegistry implements AgentRegistry {
     return agent ? this.toAgentCard(agent) : null;
   }
 
-  async list(): Promise<Agent[]> {
+  async list(options?: RegistryOptions): Promise<Agent[]> {
+    const { page = 1, limit = 20 } = options || {};
+    const skip = (page - 1) * limit;
+
     const where: Prisma.AgentWhereInput = {};
     if (this.session) {
       where.OR = [{ userId: this.session.user.id }, { private: false }];
@@ -135,6 +143,8 @@ export class PrismaRegistry implements AgentRegistry {
     const agents = await prisma.agent.findMany({
       where,
       include: agentWithVersionsAndSkills.include,
+      skip,
+      take: limit,
     });
     return agents
       .map((agent) => {
@@ -147,7 +157,10 @@ export class PrismaRegistry implements AgentRegistry {
       .filter((entry): entry is Agent => entry !== null);
   }
 
-  async search(query: string): Promise<Agent[]> {
+  async search(query: string, options?: RegistryOptions): Promise<Agent[]> {
+    const { page = 1, limit = 20 } = options || {};
+    const skip = (page - 1) * limit;
+
     const parsed = this.queryParser.parse(query);
     const where: Prisma.AgentWhereInput = { AND: [] };
 
@@ -209,6 +222,8 @@ export class PrismaRegistry implements AgentRegistry {
     const agents = await prisma.agent.findMany({
       where,
       include: agentWithVersionsAndSkills.include,
+      skip,
+      take: limit,
     });
 
     return agents.map((agent) => this.toAgentCard(agent));

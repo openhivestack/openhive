@@ -42,6 +42,11 @@ export interface Agent extends AgentCard {
   runtime?: string;
 }
 
+export interface RegistryOptions {
+  page?: number;
+  limit?: number;
+}
+
 // Next.js Route Params
 export interface AgentParams {
   params: Promise<{ agentName: string }>;

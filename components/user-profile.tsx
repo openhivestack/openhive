@@ -13,12 +13,20 @@ import {
   DropdownMenuShortcut,
 } from "@/components/ui/dropdown-menu";
 import { LogOut } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 export function UserProfile() {
   const { data } = useSession();
-
+  const router = useRouter();
+  
   const handleSignOut = () => {
-    signOut({});
+    signOut({
+      fetchOptions: {
+        onSuccess: () => {
+          router.push("/");
+        },
+      },
+    });
   };
 
   if (!data) {

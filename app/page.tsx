@@ -21,7 +21,6 @@ import { Marquee } from "@/components/ui/marquee";
 import { AgentCard } from "@/components/agent-card";
 import { ShineBorder } from "@/components/ui/shine-border";
 import { AnimatedGradientText } from "@/components/ui/animated-gradient-text";
-import { HowItWorks } from "@/components/how-it-works";
 
 export default function HomePage() {
   const { data, isPending } = useSession();

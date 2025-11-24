@@ -16,14 +16,16 @@ export async function GET(req: NextRequest) {
   });
   const { searchParams } = new URL(req.url);
   const query = searchParams.get("q");
+  const page = parseInt(searchParams.get("page") || "1", 10);
+  const limit = parseInt(searchParams.get("limit") || "20", 10);
   const registry = await getRegistry(session);
 
   try {
     let agents;
     if (query) {
-      agents = await registry.search(query);
+      agents = await registry.search(query, { page, limit });
     } else {
-      agents = await registry.list();
+      agents = await registry.list({ page, limit });
     }
 
     // Fetch operational status for all agents in bulk
