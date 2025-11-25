@@ -1,7 +1,6 @@
-import { auth, UserSession } from "@/lib/auth";
+import { validateAuth, UserSession } from "@/lib/auth";
 import { PrismaRegistry } from "@/lib/prisma.registry";
 import { NextRequest, NextResponse } from "next/server";
-import { headers } from "next/headers";
 import { AgentParams } from "@/lib/types";
 import { cloudService } from "@/lib/cloud.service";
 import { incrementDownloadCount, recordMetric } from "@/lib/metrics";
@@ -13,9 +12,8 @@ async function getRegistry(
 }
 
 export async function GET(req: NextRequest, { params }: AgentParams) {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
+  const authResult = await validateAuth();
+  const session = authResult?.session || null;
   if (!session) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }

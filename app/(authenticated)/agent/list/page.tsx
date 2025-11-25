@@ -1,7 +1,6 @@
 "use client";
 
 import { AgentSearch } from "@/components/agent-search";
-import { AgentCard } from "@/components/agent-card";
 import {
   Empty,
   EmptyHeader,
@@ -18,6 +17,7 @@ import { Agent } from "@/lib/types";
 import { useEffect, useState } from "react";
 import { openhive } from "@/lib/openhive";
 import { Skeleton } from "@/components/ui/skeleton";
+import { AgentBlock } from "@/components/agent-block";
 
 export default function AgentsPage() {
   const router = useRouter();
@@ -121,7 +121,7 @@ export default function AgentsPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {agents.map((agent) => (
                 <Link key={agent.name} href={`/agent/${agent.name}/overview`}>
-                  <AgentCard agent={agent} />
+                  <AgentBlock agent={agent} />
                 </Link>
               ))}
             </div>

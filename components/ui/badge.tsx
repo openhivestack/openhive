@@ -23,6 +23,12 @@ const badgeVariants = cva(
           "border-transparent bg-destructive/10 text-destructive [a&]:hover:bg-destructive/20",
         public:
           "border-transparent bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 [a&]:hover:bg-emerald-500/20",
+        running:
+          "border-transparent bg-green-500/10 text-green-600 dark:text-green-400 [a&]:hover:bg-green-500/20",
+        stopped:
+          "border-transparent bg-gray-500/10 text-gray-600 dark:text-gray-400 [a&]:hover:bg-gray-500/20",
+        ghost:
+          "border-transparent bg-transparent text-foreground [a&]:hover:bg-accent [a&]:hover:text-accent-foreground",
       },
       size: {
         default: "px-2 py-0.5 text-xs",

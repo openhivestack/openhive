@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cloudService } from "@/lib/cloud.service";
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
+import { validateAuth } from "@/lib/auth";
 
 interface AgentPathParams {
   params: Promise<{ agentName: string; path?: string[] }>;
@@ -26,9 +25,8 @@ export async function DELETE(req: NextRequest, params: AgentPathParams) {
 }
 
 async function handleProxy(req: NextRequest, { params }: AgentPathParams) {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
+  const authResult = await validateAuth();
+  const session = authResult?.session || null;
 
   if (!session) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });

@@ -21,6 +21,7 @@ import { AgentCard } from "@/components/agent-card";
 import { ShineBorder } from "@/components/ui/shine-border";
 import { AnimatedGradientText } from "@/components/ui/animated-gradient-text";
 import { openhive } from "@/lib/openhive";
+import { AgentBlock } from "@/components/agent-block";
 
 export default function HomePage() {
   const { data, isPending } = useSession();
@@ -136,7 +137,7 @@ export default function HomePage() {
             <>
               <Marquee pauseOnHover className="[--duration:20s]" repeat={5}>
                 {agents.map((agent) => (
-                  <AgentCard
+                  <AgentBlock
                     agent={agent}
                     compact
                     className="w-64"
@@ -151,7 +152,7 @@ export default function HomePage() {
                 reverse
               >
                 {agents.map((agent) => (
-                  <AgentCard
+                  <AgentBlock
                     agent={agent}
                     compact
                     className="w-64"

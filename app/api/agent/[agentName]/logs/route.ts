@@ -1,5 +1,4 @@
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
+import { validateAuth } from "@/lib/auth";
 import { NextResponse } from "next/server";
 import { cloudService } from "@/lib/cloud.service";
 
@@ -8,9 +7,8 @@ interface RouteParams {
 }
 
 export async function GET(req: Request, { params }: RouteParams) {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
+  const authResult = await validateAuth();
+  const session = authResult?.session || null;
 
   if (!session) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
