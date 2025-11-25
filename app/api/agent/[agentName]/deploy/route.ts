@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cloudService } from "@/lib/cloud.service";
-import { auth } from "@/lib/auth"; // Assuming auth lib exists
+import { validateAuth } from "@/lib/auth";
 import { PrismaClient } from "@prisma/client"; // Assuming prisma client exists
-import { headers } from "next/headers";
 import { AgentParams } from "@/lib/types";
 
 const prisma = new PrismaClient();
@@ -11,9 +10,8 @@ const prisma = new PrismaClient();
 export async function POST(req: NextRequest, { params }: AgentParams) {
   try {
     // 1. Authentication
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
+    const authResult = await validateAuth();
+    const session = authResult?.session || null;
 
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -90,9 +88,9 @@ export async function POST(req: NextRequest, { params }: AgentParams) {
 
 // Add a GET to check status of build/deployment?
 export async function GET(req: NextRequest, { params }: AgentParams) {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
+  const authResult = await validateAuth();
+  const session = authResult?.session || null;
+
   if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }

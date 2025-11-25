@@ -16,11 +16,11 @@ import { useSession } from "@/lib/auth-client";
 import { Spinner } from "@/components/ui/spinner";
 import { config } from "@/lib/config";
 import { useEffect, useState } from "react";
-import { openhive } from "@/lib/openhive.client";
 import { Marquee } from "@/components/ui/marquee";
 import { AgentCard } from "@/components/agent-card";
 import { ShineBorder } from "@/components/ui/shine-border";
 import { AnimatedGradientText } from "@/components/ui/animated-gradient-text";
+import { openhive } from "@/lib/openhive";
 
 export default function HomePage() {
   const { data, isPending } = useSession();
@@ -32,7 +32,7 @@ export default function HomePage() {
     const fetchAgents = async () => {
       try {
         setIsLoadingAgents(true);
-        const data = await openhive.agents.list();
+        const data = await openhive.list();
         setAgents(data);
       } catch (error) {
         console.error(error);
@@ -60,8 +60,7 @@ export default function HomePage() {
           {config.appName}
         </AnimatedGradientText>
         <h1 className="text-xl font-medium text-foreground md:text-2xl">
-          The Open Network of{" "}
-          <span className="">AI Agents</span>
+          The Open Network of <span className="">AI Agents</span>
         </h1>
         <p className="max-w-xl text-sm text-muted-foreground">
           <span className="font-bold text-primary">
@@ -137,7 +136,12 @@ export default function HomePage() {
             <>
               <Marquee pauseOnHover className="[--duration:20s]" repeat={5}>
                 {agents.map((agent) => (
-                  <AgentCard agent={agent} compact className="w-64" key={agent.id} />
+                  <AgentCard
+                    agent={agent}
+                    compact
+                    className="w-64"
+                    key={agent.id}
+                  />
                 ))}
               </Marquee>
               <Marquee
@@ -147,7 +151,12 @@ export default function HomePage() {
                 reverse
               >
                 {agents.map((agent) => (
-                  <AgentCard agent={agent} compact className="w-64" key={agent.id} />
+                  <AgentCard
+                    agent={agent}
+                    compact
+                    className="w-64"
+                    key={agent.id}
+                  />
                 ))}
               </Marquee>
             </>
@@ -158,20 +167,36 @@ export default function HomePage() {
       {/* Footer */}
       <div className="w-full absolute bottom-0 bg-accent px-6 py-3 flex justify-between text-sm font-medium">
         <div className="flex items-center justify-center gap-8">
-          <Link href="https://docs.openhive.sh/docs/guides/quickstart" target="_blank" className="text-muted-foreground hover:text-primary">
+          <Link
+            href="https://docs.openhive.sh/docs/guides/quickstart"
+            target="_blank"
+            className="text-muted-foreground hover:text-primary"
+          >
             Publishing Agents
           </Link>
         </div>
         <div className="flex items-center justify-center gap-8">
-          <Link href="https://docs.openhive.sh/docs/concepts/registry#how-it-works" target="_blank" className="text-muted-foreground hover:text-primary flex items-center gap-1">
+          <Link
+            href="https://docs.openhive.sh/docs/concepts/registry#how-it-works"
+            target="_blank"
+            className="text-muted-foreground hover:text-primary flex items-center gap-1"
+          >
             How It Works
           </Link>
         </div>
         <div className="flex items-center justify-center gap-8">
-          <Link href="https://docs.openhive.sh/privacy-policy" target="_blank" className="text-muted-foreground hover:text-primary">
+          <Link
+            href="https://docs.openhive.sh/privacy-policy"
+            target="_blank"
+            className="text-muted-foreground hover:text-primary"
+          >
             Privacy
           </Link>
-          <Link href="https://docs.openhive.sh/terms-of-service" target="_blank" className="text-muted-foreground hover:text-primary">
+          <Link
+            href="https://docs.openhive.sh/terms-of-service"
+            target="_blank"
+            className="text-muted-foreground hover:text-primary"
+          >
             Terms
           </Link>
         </div>

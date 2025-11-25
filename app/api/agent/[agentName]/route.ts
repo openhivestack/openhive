@@ -1,8 +1,8 @@
-import { auth, UserSession } from "@/lib/auth";
+import { UserSession } from "@/lib/auth";
+import { validateAuth } from "@/lib/auth";
 import { OpenHive } from "@open-hive/sdk";
 import { PrismaRegistry } from "@/lib/prisma.registry";
 import { AgentParams } from "@/lib/types";
-import { headers } from "next/headers";
 import { NextResponse, NextRequest } from "next/server";
 import { cloudService } from "@/lib/cloud.service";
 
@@ -12,9 +12,8 @@ async function getRegistry(session: UserSession | null): Promise<OpenHive> {
 }
 
 export async function GET(req: Request, { params }: AgentParams) {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
+  const authResult = await validateAuth();
+  const session = authResult?.session || null;
 
   const { agentName } = await params;
   const registry = await getRegistry(session);
@@ -49,9 +48,8 @@ export async function GET(req: Request, { params }: AgentParams) {
 }
 
 export async function PUT(req: Request, { params }: AgentParams) {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
+  const authResult = await validateAuth();
+  const session = authResult?.session || null;
 
   if (!session) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
@@ -73,9 +71,8 @@ export async function PUT(req: Request, { params }: AgentParams) {
 }
 
 export async function DELETE(req: Request, { params }: AgentParams) {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
+  const authResult = await validateAuth();
+  const session = authResult?.session || null;
 
   if (!session) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
@@ -99,9 +96,8 @@ import { recordMetric } from "@/lib/metrics";
 // Handle POST requests by proxying to the agent
 // This supports agents that accept POST requests at the root path
 export async function POST(req: NextRequest, { params }: AgentParams) {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
+  const authResult = await validateAuth();
+  const session = authResult?.session || null;
 
   if (!session) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });

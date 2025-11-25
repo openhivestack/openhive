@@ -39,22 +39,11 @@ export interface Tab {
 
 const defaultTabs: Tab[] = [
   { label: "Agents", href: "/agent/list", key: "agent", icon: Bot },
-  { label: "Builder", href: "/builder", key: "builder", icon: Code },
-  { label: "Clusters", href: "/clusters", key: "clusters", icon: Network },
-  { label: "Workflows", href: "/workflows", key: "workflows", icon: Dna },
-  {
-    label: "Integrations",
-    href: "/integrations",
-    key: "integrations",
-    icon: Unplug,
-  },
-  { label: "Insights", href: "/insights", key: "insights", icon: BarChart3 },
   {
     label: "Settings",
     href: "/settings",
     key: "settings",
     icon: Settings,
-    hidden: true,
   },
 ];
 

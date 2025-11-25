@@ -1,13 +1,10 @@
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
+import { validateAuth } from "@/lib/auth";
 import { NextResponse } from "next/server";
 
 export async function GET() {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
+  const result = await validateAuth();
 
-  const user = session?.user;
+  const user = result?.user;
 
   if (user) {
     return NextResponse.json({ user });

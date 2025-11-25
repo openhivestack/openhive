@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { openhive } from "@/lib/openhive.client";
+import { openhive } from "@/lib/openhive";
 import { Agent } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -80,7 +80,8 @@ export default function AgentOverviewPage() {
   useEffect(() => {
     const fetchAgent = async () => {
       try {
-        const data = await openhive.agents.agent(agentName).get();
+        const data = await openhive.get(agentName);
+        // @ts-expect-error - SDK returns AgentCard, but we treat it as Agent
         setAgent(data);
       } catch (error) {
         console.error("Failed to fetch agent:", error);

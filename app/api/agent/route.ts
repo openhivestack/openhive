@@ -1,7 +1,7 @@
-import { auth, UserSession } from "@/lib/auth";
+import { UserSession } from "@/lib/auth";
+import { validateAuth } from "@/lib/auth";
 import { OpenHive } from "@open-hive/sdk";
 import { PrismaRegistry } from "@/lib/prisma.registry";
-import { headers } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 import { cloudService } from "@/lib/cloud.service";
 
@@ -11,9 +11,9 @@ async function getRegistry(session: UserSession | null): Promise<OpenHive> {
 }
 
 export async function GET(req: NextRequest) {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
+  const authResult = await validateAuth();
+  const session = authResult?.session || null;
+
   const { searchParams } = new URL(req.url);
   const query = searchParams.get("q");
   const page = parseInt(searchParams.get("page") || "1", 10);
@@ -46,9 +46,9 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: Request) {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
+  const authResult = await validateAuth();
+  const session = authResult?.session || null;
+
   if (!session) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }

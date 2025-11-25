@@ -16,7 +16,7 @@ import { AgentTable } from "@/components/agent-table";
 import { ToggleGroupItem, ToggleGroup } from "@/components/ui/toggle-group";
 import { Agent } from "@/lib/types";
 import { useEffect, useState } from "react";
-import { openhive } from "@/lib/openhive.client";
+import { openhive } from "@/lib/openhive";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function AgentsPage() {
@@ -39,10 +39,11 @@ export default function AgentsPage() {
       try {
         let fetchedAgents;
         if (query) {
-          fetchedAgents = await openhive.agents.search(query);
+          fetchedAgents = await openhive.search(query);
         } else {
-          fetchedAgents = await openhive.agents.list();
+          fetchedAgents = await openhive.list();
         }
+        // @ts-expect-error - SDK returns AgentCard[], but we use Agent type
         setAgents(fetchedAgents);
       } catch (err) {
         setError(err as Error);
