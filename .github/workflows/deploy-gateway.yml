@@ -1,0 +1,98 @@
+name: Deploy Gateway Service
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Environment to deploy to (dev, itg, pro)"
+        required: true
+        default: "dev"
+        type: choice
+        options:
+          - dev
+          - itg
+          - pro
+      gateway_secret:
+        description: "Gateway Shared Secret (Leave empty to use existing env var if possible, or set new one)"
+        required: false
+
+env:
+  AWS_REGION: us-east-1
+  # Environment defaults to dev on input, fallback shouldn't happen but good to have
+  ENVIRONMENT: ${{ github.event.inputs.environment || 'dev' }}
+
+jobs:
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment || 'dev' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Set Dynamic Env Vars
+        run: |
+          echo "ECR_REPOSITORY=openhive-${{ env.ENVIRONMENT }}-gateway" >> $GITHUB_ENV
+          echo "ECS_SERVICE=openhive-${{ env.ENVIRONMENT }}-gateway" >> $GITHUB_ENV
+          echo "ECS_CLUSTER=openhive-${{ env.ENVIRONMENT }}-cluster" >> $GITHUB_ENV
+          echo "ECS_TASK_DEFINITION_FAMILY=openhive-${{ env.ENVIRONMENT }}-gateway" >> $GITHUB_ENV
+          echo "CONTAINER_NAME=gateway" >> $GITHUB_ENV
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build, tag, and push image to Amazon ECR
+        id: build-image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          cd infrastructure/cloud/services/gateway
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
+
+      - name: Download task definition
+        run: |
+          aws ecs describe-task-definition --task-definition ${{ env.ECS_TASK_DEFINITION_FAMILY }} --query taskDefinition > task-definition.json
+
+      - name: Update Task Definition (Image, Port & Secret)
+        id: update-task-def
+        env:
+          IMAGE: ${{ steps.build-image.outputs.image }}
+          # Secrets are automatically scoped to the selected environment (dev/pro)
+          GATEWAY_SECRET: ${{ secrets.GATEWAY_SECRET }}
+        run: |
+          # Update the task definition to use the real gateway image.
+           # CHANGED: We keep port 80 everywhere (terraform, load balancer, and app) to avoid mismatch errors.
+           # CHANGED: We now preserve existing environment variables (like CLOUD_MAP_NAMESPACE) and only update/add the ones we need.
+           jq --arg IMAGE "$IMAGE" --arg SECRET "$GATEWAY_SECRET" '
+             .containerDefinitions[0].image = $IMAGE |
+             .containerDefinitions[0].portMappings[0].containerPort = 80 |
+             .containerDefinitions[0].portMappings[0].hostPort = 80 |
+             .containerDefinitions[0].environment |= (
+               map(select(.name != "GATEWAY_SECRET" and .name != "PORT")) + 
+               [
+                 { "name": "GATEWAY_SECRET", "value": $SECRET },
+                 { "name": "PORT", "value": "80" }
+               ]
+             ) |
+             del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy)
+           ' task-definition.json > new-task-def.json
+
+      - name: Deploy Amazon ECS task definition
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+        with:
+          task-definition: new-task-def.json
+          service: ${{ env.ECS_SERVICE }}
+          cluster: ${{ env.ECS_CLUSTER }}
+          wait-for-service-stability: true

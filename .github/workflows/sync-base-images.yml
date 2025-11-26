@@ -1,0 +1,43 @@
+name: Sync Base Images
+
+on:
+  workflow_dispatch:
+
+jobs:
+  sync-images:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Pull and Push Node.js Image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: openhive-dev-base-images
+        run: |
+          # Node.js
+          docker pull node:22-alpine
+          docker tag node:22-alpine $ECR_REGISTRY/$ECR_REPOSITORY:node-22-alpine
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:node-22-alpine
+
+      - name: Pull and Push Python Image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: openhive-dev-base-images
+        run: |
+          # Python
+          docker pull python:3.10-slim
+          docker tag python:3.10-slim $ECR_REGISTRY/$ECR_REPOSITORY:python-3.10-slim
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:python-3.10-slim

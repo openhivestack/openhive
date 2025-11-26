@@ -45,3 +45,15 @@ tmp/
 
 # Cursor
 .cursor
+
+# Local Terraform state and provider plugins
+.terraform/
+*.tfstate
+*.tfstate.*
+
+# Crash log files
+crash.log
+crash.*.log
+
+# Exclude secrets and local variable definitions
+*.tfvars
