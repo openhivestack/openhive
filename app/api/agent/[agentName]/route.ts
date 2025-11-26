@@ -82,11 +82,16 @@ export async function DELETE(req: Request, { params }: AgentParams) {
   const registry = await getRegistry(session);
 
   try {
-    await registry.delete(agentName);
-    return NextResponse.json({ success: true });
+    // CHANGED: Only stop the cloud service. Do not delete from registry.
+    // The user requirement is to keep the agent and its versions (like npm unpublish policy)
+    // but remove the deployed service to stop costs/running instance.
+    await cloudService.stopAgentService(agentName);
+    // await registry.delete(agentName); 
+
+    return NextResponse.json({ success: true, message: "Agent service stopped successfully." });
   } catch (error) {
     const message =
-      error instanceof Error ? error.message : "Failed to remove agent";
+      error instanceof Error ? error.message : "Failed to remove agent service";
     return NextResponse.json({ message }, { status: 500 });
   }
 }

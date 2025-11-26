@@ -3,7 +3,7 @@
 import { ReactNode } from "react";
 import { Header } from "@/components/header";
 import { SubHeader, Tab } from "@/components/sub-header";
-import { Home, Terminal } from "lucide-react";
+import { Home, Settings, Terminal } from "lucide-react";
 import { useParams, usePathname } from "next/navigation";
 
 interface Props {
@@ -28,6 +28,12 @@ export default function AgentLayout({ children }: Props) {
       href: `/agent/${agentName}/logs`,
       key: "logs",
       icon: Terminal,
+    },
+    {
+      label: "Settings",
+      href: `/agent/${agentName}/settings`,
+      key: "settings",
+      icon: Settings,
     },
   ];
 

@@ -1,5 +1,6 @@
 import { Prisma } from "@prisma/client";
 import { AgentCard } from "@open-hive/sdk";
+import { LucideIcon } from "lucide-react";
 
 // Re-export SDK types for convenience and consistency
 export type { AgentCard, Skill, AgentRegistry } from "@open-hive/sdk";
@@ -50,4 +51,18 @@ export interface RegistryOptions {
 // Next.js Route Params
 export interface AgentParams {
   params: Promise<{ agentName: string }>;
+}
+
+export interface Tab {
+  category?: string;
+  description?: string;
+  items: TabItem[];
+  hidden?: boolean;
+}
+
+export interface TabItem {
+  label: string;
+  icon: LucideIcon;
+  value: string;
+  pathname: string;
 }

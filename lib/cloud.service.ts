@@ -18,6 +18,7 @@ import {
   DescribeServicesCommand,
   ListTasksCommand,
   DescribeTasksCommand,
+  DescribeTaskDefinitionCommand,
 } from "@aws-sdk/client-ecs";
 import {
   ServiceDiscoveryClient,
@@ -689,6 +690,145 @@ export class CloudService {
         return [];
       }
       console.error(`Error fetching logs stream ${logStreamName}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Gets the current environment variables for the agent service.
+   */
+  async getAgentEnvironment(agentName: string): Promise<Record<string, string>> {
+    const serviceName = `service-${agentName}`;
+
+    try {
+      // 1. Get service to find current task definition
+      const describeService = await this.ecsClient.send(
+        new DescribeServicesCommand({
+          cluster: this.cluster,
+          services: [serviceName],
+        })
+      );
+
+      const service = describeService.services?.[0];
+      if (!service || !service.taskDefinition) {
+        return {};
+      }
+
+      // 2. Get Task Definition
+      const describeTaskDef = await this.ecsClient.send(
+        new DescribeTaskDefinitionCommand({
+          taskDefinition: service.taskDefinition,
+        })
+      );
+
+      const containerDef = describeTaskDef.taskDefinition?.containerDefinitions?.find(
+        (c) => c.name === "agent"
+      );
+
+      if (!containerDef || !containerDef.environment) {
+        return {};
+      }
+
+      // Convert array [{name, value}] to object {name: value}
+      const envVars: Record<string, string> = {};
+      containerDef.environment.forEach((e) => {
+        if (e.name && e.value) {
+          envVars[e.name] = e.value;
+        }
+      });
+
+      return envVars;
+    } catch (error) {
+      console.error(`Failed to get environment for ${agentName}:`, error);
+      return {};
+    }
+  }
+
+  /**
+   * Updates the environment variables for the agent service.
+   * This creates a new task definition revision and updates the service.
+   */
+  async updateAgentEnvironment(
+    agentName: string,
+    envVars: Record<string, string>
+  ): Promise<void> {
+    const serviceName = `service-${agentName}`;
+
+    try {
+      // 1. Get current service and task definition
+      const describeService = await this.ecsClient.send(
+        new DescribeServicesCommand({
+          cluster: this.cluster,
+          services: [serviceName],
+        })
+      );
+
+      const service = describeService.services?.[0];
+      if (!service || !service.taskDefinition) {
+        throw new Error("Service or task definition not found");
+      }
+
+      const describeTaskDef = await this.ecsClient.send(
+        new DescribeTaskDefinitionCommand({
+          taskDefinition: service.taskDefinition,
+        })
+      );
+
+      const taskDef = describeTaskDef.taskDefinition;
+      if (!taskDef) {
+        throw new Error("Task definition details not found");
+      }
+
+      // 2. Prepare new container definition with updated env vars
+      // Convert object {name: value} to array [{name, value}]
+      const newEnv = Object.entries(envVars).map(([name, value]) => ({
+        name,
+        value,
+      }));
+
+      const newContainerDefs = taskDef.containerDefinitions?.map((c) => {
+        if (c.name === "agent") {
+          return {
+            ...c,
+            environment: newEnv,
+          };
+        }
+        return c;
+      });
+
+      // 3. Register new Task Definition
+      const registerTaskCmd = new RegisterTaskDefinitionCommand({
+        family: taskDef.family,
+        networkMode: taskDef.networkMode,
+        requiresCompatibilities: taskDef.requiresCompatibilities,
+        cpu: taskDef.cpu,
+        memory: taskDef.memory,
+        executionRoleArn: taskDef.executionRoleArn,
+        taskRoleArn: taskDef.taskRoleArn,
+        containerDefinitions: newContainerDefs,
+        volumes: taskDef.volumes,
+      });
+
+      const newTaskDef = await this.ecsClient.send(registerTaskCmd);
+      const newTaskDefArn = newTaskDef.taskDefinition?.taskDefinitionArn;
+
+      if (!newTaskDefArn) {
+        throw new Error("Failed to register new task definition");
+      }
+
+      // 4. Update Service to use new Task Definition
+      await this.ecsClient.send(
+        new UpdateServiceCommand({
+          cluster: this.cluster,
+          service: serviceName,
+          taskDefinition: newTaskDefArn,
+          forceNewDeployment: true, // Ensure it redeploys
+        })
+      );
+
+      console.log(`Updated environment for ${agentName}`);
+    } catch (error) {
+      console.error(`Failed to update environment for ${agentName}:`, error);
       throw error;
     }
   }

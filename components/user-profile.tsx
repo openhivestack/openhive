@@ -11,6 +11,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuShortcut,
+  DropdownMenuGroup,
 } from "@/components/ui/dropdown-menu";
 import { LogOut } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -50,6 +51,12 @@ export function UserProfile() {
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-56" align="start">
         <DropdownMenuLabel>Account</DropdownMenuLabel>
+        <DropdownMenuGroup>
+          <DropdownMenuItem onClick={() => router.push("/settings")}>
+            Settings
+            <DropdownMenuShortcut>⌘S</DropdownMenuShortcut>
+          </DropdownMenuItem>
+        </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleSignOut}>
           <LogOut className="size-3" />
