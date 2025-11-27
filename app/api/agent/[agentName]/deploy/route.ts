@@ -62,6 +62,7 @@ export async function POST(req: NextRequest, { params }: AgentParams) {
     // 5. Trigger Build
     // This initiates the CodeBuild process.
     // The agent image will be tagged as: [repo-url]:[agentName]-[version]
+    // The CloudProvider implementation handles any necessary deployment triggers (e.g. K8s updates Deployment)
     const buildId = await cloudService.triggerAgentBuild(
       agent.userId,
       agentName,

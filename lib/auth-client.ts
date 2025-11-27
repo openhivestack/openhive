@@ -4,10 +4,12 @@ import {
   apiKeyClient,
   deviceAuthorizationClient,
   organizationClient,
+  usernameClient,
 } from "better-auth/client/plugins";
 
 export const authClient = createAuthClient({
   plugins: [
+    usernameClient(),
     adminClient(),
     organizationClient(),
     apiKeyClient(),
@@ -15,4 +17,4 @@ export const authClient = createAuthClient({
   ],
 });
 
-export const { useSession, useActiveOrganization, signIn, signOut } = authClient;
+export const { useSession, useActiveOrganization, signIn, signUp, signOut } = authClient;

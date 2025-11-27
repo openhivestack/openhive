@@ -1,0 +1,14 @@
+apiVersion: v2
+name: openhive
+description: A Helm chart for deploying the OpenHive Platform
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+dependencies:
+  # Updated to the new migrated URL for Twuni
+  - name: docker-registry
+    version: 2.2.2
+    repository: https://twuni.github.io/docker-registry.helm
+    condition: registry.enabled
+    alias: registry # Alias to 'registry' so values.yaml config applies correctly
+

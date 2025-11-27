@@ -31,13 +31,13 @@ export async function GET(req: Request, { params }: RouteParams) {
   }
 
   try {
-    const status = await cloudService.getServiceStatus(agentName);
+    const status: any = await cloudService.getServiceStatus(agentName);
 
     let runtimeStatus = "STOPPED";
 
     if (status.status === "NOT_FOUND" || status.status === "INACTIVE") {
       runtimeStatus = "STOPPED";
-    } else if (status.status === "ACTIVE") {
+    } else if (status.status === "ACTIVE" || status.status === "RUNNING") {
       if (status.runningCount > 0) {
         runtimeStatus = "RUNNING";
       } else if (status.desiredCount > 0 && status.runningCount === 0) {

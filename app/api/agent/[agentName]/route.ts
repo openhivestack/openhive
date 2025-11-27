@@ -27,7 +27,7 @@ export async function GET(req: Request, { params }: AgentParams) {
     // Fetch operational status from ECS
     let status = "UNKNOWN";
     try {
-      const serviceStatus = await cloudService.getServiceStatus(agentName);
+      const serviceStatus: any = await cloudService.getServiceStatus(agentName);
       if (serviceStatus.status === "ACTIVE") {
         status = "RUNNING";
       } else if (serviceStatus.status === "NOT_FOUND") {

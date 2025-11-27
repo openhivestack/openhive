@@ -1,0 +1,38 @@
+{{- if .Values.serviceAccount.create -}}
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ include "openhive.serviceAccountName" . }}
+  labels:
+    {{- include "openhive.labels" . | nindent 4 }}
+  {{- with .Values.serviceAccount.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+{{- end }}
+---
+# RoleBinding for the ServiceAccount to allow managing Deployments/Services/Jobs
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ include "openhive.fullname" . }}-manager
+  namespace: {{ .Release.Namespace }}
+rules:
+  - apiGroups: ["", "apps", "batch"]
+    resources: ["services", "deployments", "jobs", "pods", "pods/log"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ include "openhive.fullname" . }}-manager-binding
+  namespace: {{ .Release.Namespace }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "openhive.serviceAccountName" . }}
+    namespace: {{ .Release.Namespace }}
+roleRef:
+  kind: Role
+  name: {{ include "openhive.fullname" . }}-manager
+  apiGroup: rbac.authorization.k8s.io
+

@@ -10,12 +10,22 @@ import {
   deviceAuthorization,
   bearer,
   organization,
+  username,
 } from "better-auth/plugins";
 import { apiKey } from "better-auth/plugins";
 
 export type { UserSession } from "./types";
 
 const prisma = new PrismaClient();
+
+// Conditionally configure social providers
+const socialProviders: any = {};
+if (process.env.GH_CLIENT_ID && process.env.GH_CLIENT_SECRET) {
+  socialProviders.github = {
+    clientId: process.env.GH_CLIENT_ID,
+    clientSecret: process.env.GH_CLIENT_SECRET,
+  };
+}
 
 export const auth = betterAuth({
   baseURL: process.env.BETTER_AUTH_URL,
@@ -31,11 +41,9 @@ export const auth = betterAuth({
   databaseHooks: {
     user: {},
   },
-  socialProviders: {
-    github: {
-      clientId: (process.env.GH_CLIENT_ID as string) || "",
-      clientSecret: (process.env.GH_CLIENT_SECRET as string) || "",
-    },
+  socialProviders,
+  emailAndPassword: {
+    enabled: true,
   },
   plugins: [
     admin(),
@@ -45,6 +53,7 @@ export const auth = betterAuth({
     oneTimeToken({
       expiresIn: 60 * 5, // 5 minutes
     }),
+    username(),
     deviceAuthorization({
       // Optional configuration
       expiresIn: "5m", // Device code expiration time

@@ -38,7 +38,6 @@ export default function DeviceApprovalPage() {
       return;
     }
 
-    console.log('data', data);
     if (!data?.user) {
       // Redirect to login if not authenticated
       const redirectUrl = encodeURIComponent(
@@ -71,7 +70,7 @@ export default function DeviceApprovalPage() {
 
         // Redirect after a short delay
         setTimeout(() => {
-          router.push('/');
+          window.close();
         }, 1500);
       } else {
         const errorData = await response.json().catch(() => ({}));

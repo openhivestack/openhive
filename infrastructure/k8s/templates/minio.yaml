@@ -1,0 +1,127 @@
+{{- if .Values.minio.enabled }}
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ include "openhive.fullname" . }}-minio
+  labels:
+    {{- include "openhive.labels" . | nindent 4 }}
+type: Opaque
+data:
+  rootUser: {{ .Values.minio.auth.rootUser | b64enc | quote }}
+  rootPassword: {{ .Values.minio.auth.rootPassword | b64enc | quote }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: minio
+  labels:
+    app: minio
+spec:
+  ports:
+    - port: 9000
+      targetPort: 9000
+      name: api
+    - port: 9001
+      targetPort: 9001
+      name: console
+  selector:
+    app: minio
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: minio
+  labels:
+    app: minio
+spec:
+  serviceName: minio
+  replicas: 1
+  selector:
+    matchLabels:
+      app: minio
+  template:
+    metadata:
+      labels:
+        app: minio
+    spec:
+      containers:
+        - name: minio
+          image: minio/minio:latest
+          args:
+            - server
+            - /data
+            - --console-address
+            - :9001
+          env:
+            - name: MINIO_ROOT_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "openhive.fullname" . }}-minio
+                  key: rootUser
+            - name: MINIO_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "openhive.fullname" . }}-minio
+                  key: rootPassword
+          ports:
+            - containerPort: 9000
+            - containerPort: 9001
+          volumeMounts:
+            - name: data
+              mountPath: /data
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "1Gi"
+              cpu: "500m"
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: [ "ReadWriteOnce" ]
+        resources:
+          requests:
+            storage: {{ .Values.minio.persistence.size | default "10Gi" }}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: minio-setup
+  annotations:
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: mc
+          image: minio/mc:latest
+          env:
+            - name: MINIO_ROOT_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "openhive.fullname" . }}-minio
+                  key: rootUser
+            - name: MINIO_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "openhive.fullname" . }}-minio
+                  key: rootPassword
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              # Wait for MinIO to be ready
+              until mc alias set myminio http://minio:9000 $MINIO_ROOT_USER $MINIO_ROOT_PASSWORD; do
+                echo "Waiting for MinIO..."
+                sleep 5
+              done
+              
+              # Create bucket if it doesn't exist
+              mc mb myminio/{{ .Values.minio.defaultBuckets | default "openhive-agents" }} --ignore-existing
+              
+              # Set public policy (or appropriate policy)
+              mc anonymous set public myminio/{{ .Values.minio.defaultBuckets | default "openhive-agents" }}
+{{- end }}
