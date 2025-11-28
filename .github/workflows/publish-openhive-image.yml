@@ -1,14 +1,15 @@
 name: Publish OpenHive Image
 
 on:
-  push:
-    branches:
-      - main
-    tags:
-      - "v*"
-    paths:
-      - "openhive/**"
-      - ".github/workflows/publish-openhive-image.yml"
+  workflow_dispatch:
+  # push:
+  #   branches:
+  #     - main
+  #   tags:
+  #     - "v*"
+  #   paths:
+  #     - "openhive/**"
+  #     - ".github/workflows/publish-openhive-image.yml"
 
 env:
   REGISTRY: docker.io
