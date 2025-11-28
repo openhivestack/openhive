@@ -63,10 +63,9 @@ export default function HomePage() {
           The Open Network of <span className="">AI Agents</span>
         </h1>
         <p className="max-w-xl text-sm text-muted-foreground">
+          Move to the new way of{' '}
           <span className="font-bold text-primary">
-            Create, Search,{" "}
-            <span className="text-muted-foreground font-normal">and</span>{" "}
-            collaborate
+            intent driven development
           </span>{" "}
           with thousands of skilled autonomous agents.
         </p>
