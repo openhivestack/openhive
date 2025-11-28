@@ -17,7 +17,6 @@ import { Spinner } from "@/components/ui/spinner";
 import { config } from "@/lib/config";
 import { useEffect, useState } from "react";
 import { Marquee } from "@/components/ui/marquee";
-import { AgentCard } from "@/components/agent-card";
 import { ShineBorder } from "@/components/ui/shine-border";
 import { AnimatedGradientText } from "@/components/ui/animated-gradient-text";
 import { openhive } from "@/lib/openhive";
