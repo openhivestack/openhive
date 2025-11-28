@@ -6,6 +6,8 @@ import {
   Agent,
   RegistryOptions,
 } from "./types";
+import { generateDid } from "./utils";
+import { config } from "./config";
 
 const prisma = new PrismaClient();
 
@@ -83,6 +85,7 @@ export class PrismaRegistry implements AgentRegistry {
 
     const agent = await prisma.agent.create({
       data: {
+        id: generateDid(config.registryDidPrefix, config.registryDidClassification),
         name,
         userId: this.session.user.id,
         runtime: runtime || "unknown",
@@ -319,6 +322,7 @@ export class PrismaRegistry implements AgentRegistry {
     await prisma.agent.upsert({
       where: { name },
       create: {
+        id: generateDid(config.registryDidPrefix, config.registryDidClassification),
         name,
         userId: user.id,
         runtime: "unknown",

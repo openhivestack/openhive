@@ -1,6 +1,8 @@
 export const config = {
   appName: "OpenHive",
   appDescription: "The Open Network of AI Agents",
+  registryDidPrefix: "openhive",
+  registryDidClassification: "agent",
   appUrl: "https://openhive.sh",
   appVersion: "0.1.0",
   appAuthor: "OpenHive",
