@@ -46,7 +46,20 @@ export async function POST(req: NextRequest, { params }: AgentParams) {
       resolvedVersion = agent.latestVersion;
     }
 
-    // 4. Create ECS Service if Needed
+    // 4. Update AgentVersion to set deployed = true
+    await prisma.agentVersion.update({
+      where: {
+        agentId_version: {
+          agentId: agent.id,
+          version: resolvedVersion,
+        },
+      },
+      data: {
+        deployed: true,
+      },
+    });
+
+    // 5. Create ECS Service if Needed
     // This ensures the service exists BEFORE the build finishes and tries to update it,
     // or allows us to handle the initial deployment via API.
     try {

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cloudService } from "@/lib/cloud.service";
 import { validateAuth } from "@/lib/auth";
+import { PrismaRegistry } from "@/lib/prisma.registry";
 
 interface AgentParams {
   params: Promise<{ agentName: string }>;
@@ -23,8 +24,30 @@ export async function GET(req: NextRequest, { params }: AgentParams) {
   }
 
   // 1. Resolve Target URL for agent card
-  const baseUrl = cloudService.getAgentInternalUrl(agentName);
-  const targetUrl = `${baseUrl}/.well-known/agent-card.json`;
+  const registry = new PrismaRegistry(session);
+  const agent = await registry.getAgentModel(agentName);
+
+  if (!agent) {
+    return NextResponse.json({ error: "Agent not found" }, { status: 404 });
+  }
+
+  const latestVersion = agent.versions.find(
+    (v) => v.version === agent.latestVersion
+  );
+
+  let targetUrl: string;
+  let isDeployed = false;
+
+  // Check if agent is deployed using the flag
+  if (latestVersion?.deployed) {
+    isDeployed = true;
+    const baseUrl = cloudService.getAgentInternalUrl(agentName);
+    targetUrl = `${baseUrl}/.well-known/agent-card.json`;
+  } else {
+    const url = latestVersion?.url || "";
+    const baseUrl = url.replace(/\/$/, "");
+    targetUrl = `${baseUrl}/.well-known/agent-card.json`;
+  }
 
   console.log(`Fetching agent card from: ${targetUrl}`);
 
@@ -47,11 +70,13 @@ export async function GET(req: NextRequest, { params }: AgentParams) {
 
     const card = await response.json();
 
-    // Rewrite URL to point to the platform proxy
-    // We prefer NEXT_PUBLIC_APP_URL if available to ensure correct public URL
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || req.nextUrl.origin;
-    const platformAgentUrl = `${appUrl}/api/agent/${agentName}`;
-    card.url = platformAgentUrl;
+    if (isDeployed) {
+      // Rewrite URL to point to the platform proxy
+      // We prefer NEXT_PUBLIC_APP_URL if available to ensure correct public URL
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL || req.nextUrl.origin;
+      const platformAgentUrl = `${appUrl}/api/agent/${agentName}`;
+      card.url = platformAgentUrl;
+    }
 
     return NextResponse.json(card);
   } catch (error) {

@@ -228,6 +228,7 @@ model AgentVersion {
   url             String
   runtime         String
   capabilities    Json
+  deployed        Boolean              @default(false)
 
   downloadCount Int @default(0)
 
