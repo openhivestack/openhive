@@ -62,9 +62,23 @@ resources:
 # Configuration for internal providers
 cloudProvider: "k8s"
 
+# Storage Configuration
+storage:
+  # type: "s3" or "local"
+  # If "local", OpenHive will store agent artifacts on a PersistentVolumeClaim
+  type: "s3"
+  local:
+    path: "/var/lib/openhive/storage"
+    pvc:
+      enabled: true
+      size: "10Gi"
+      # storageClassName: "standard"
+
 # Dependencies configuration
 postgresql:
   enabled: true
+  host: "postgresql"
+  port: 5432
   # Using chart defaults for image registry/repository/tag to ensure stability
   # image:
   #   registry: docker.io
@@ -77,6 +91,8 @@ postgresql:
 
 minio:
   enabled: true
+  endpoint: "http://minio:9000"
+  publicEndpoint: "http://localhost:9000"
   # Using chart defaults for image registry/repository/tag to ensure stability
   # image:
   #   registry: docker.io

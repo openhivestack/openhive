@@ -7,7 +7,7 @@ This directory contains the Helm chart and configuration for deploying the full 
 When deployed in `k8s` mode (`CLOUD_PROVIDER=k8s`), OpenHive orchestrates agents natively using Kubernetes resources:
 
 - **Platform**: The core OpenHive Next.js application running as a Deployment.
-- **Agent Storage**: Source code is stored in the bundled **MinIO** instance (S3 compatible).
+- **Agent Storage**: Source code is stored either in the bundled **MinIO** instance (S3 compatible) or on a **Persistent Volume** (Local Storage).
 - **Image Building**: Source code is built into Docker images using **Kaniko** jobs inside the cluster (daemonless build).
 - **Registry**: Built images are pushed to the bundled private **Docker Registry** (accessible via NodePort 30500 locally or ClusterIP in prod).
 - **Execution**: Agents are deployed as standard **Kubernetes Deployments** and **Services**, managed dynamically by the OpenHive Platform.
@@ -87,7 +87,7 @@ For production environments (AWS EKS, Google GKE, Azure AKS, or On-Premise), fol
 
 ### 1. Infrastructure Requirements
 
-- **Storage Class**: Ensure a default `StorageClass` is defined for Persistent Volume Claims (PVCs) for Postgres and MinIO.
+- **Storage Class**: Ensure a default `StorageClass` is defined for Persistent Volume Claims (PVCs) for Postgres and MinIO (or Local Storage).
 - **Ingress Controller**: An Ingress controller (e.g., NGINX, AWS ALB) is required to expose the platform.
 - **Cert Manager**: (Optional) For automatic SSL/TLS certificates.
 
@@ -120,14 +120,6 @@ ingress:
         - openhive.your-company.com
 
 # Secure Passwords & Secrets
-postgresql:
-  auth:
-    password: "YOUR_STRONG_DB_PASSWORD"
-
-minio:
-  auth:
-    rootPassword: "YOUR_STRONG_MINIO_PASSWORD"
-
 secrets:
   betterAuthSecret: "GENERATED_RANDOM_STRING_MIN_32_CHARS"
   gatewaySecret: "GENERATED_SECURE_TOKEN_FOR_AGENT_PROXY"
@@ -141,7 +133,62 @@ registry:
     type: ClusterIP
 ```
 
-### 3. Install via Helm
+### 3. Storage Configuration
+
+You can choose between S3-compatible storage (default) or Local Storage (PVC).
+
+**Option A: S3 / MinIO (Default)**
+
+```yaml
+storage:
+  type: "s3"
+
+minio:
+  enabled: true # Set to false if using external S3
+  # auth: ...
+```
+
+**Option B: Local Storage**
+
+Useful for air-gapped environments without object storage.
+
+```yaml
+storage:
+  type: "local"
+  local:
+    pvc:
+      enabled: true
+      size: "20Gi"
+
+minio:
+  enabled: false # Not required
+```
+
+### 4. External Dependencies (Optional)
+
+If you already have Postgres or an Object Store, you can disable the bundled versions.
+
+```yaml
+# Use external Postgres
+postgresql:
+  enabled: false
+  host: "my-postgres-host"
+  port: 5432
+  auth:
+    username: "openhive"
+    password: "db-password"
+
+# Use external S3/MinIO
+minio:
+  enabled: false
+  endpoint: "https://s3.amazonaws.com"
+  publicEndpoint: "https://s3.amazonaws.com" # For pre-signed URLs
+  auth:
+    rootUser: "ACCESS_KEY"
+    rootPassword: "SECRET_KEY"
+```
+
+### 5. Install via Helm
 
 ```bash
 helm upgrade --install openhive ./infrastructure/k8s \
@@ -150,26 +197,21 @@ helm upgrade --install openhive ./infrastructure/k8s \
   -f prod-values.yaml
 ```
 
-### 4. Post-Install Verification
-
-Check that all pods are running and PVCs are bound.
-
-```bash
-kubectl get pods,pvc -n openhive
-```
-
 ---
 
 ## ⚙️ Configuration Reference
 
-| Parameter               | Description                                                                | Default        |
-| ----------------------- | -------------------------------------------------------------------------- | -------------- |
-| `cloudProvider`         | Backend mode (`k8s` for this chart).                                       | `k8s`          |
-| `postgresql.enabled`    | Deploy bundled Postgres (set `false` if using external RDS/CloudSQL).      | `true`         |
-| `minio.enabled`         | Deploy bundled MinIO (set `false` if using AWS S3).                        | `true`         |
-| `registry.enabled`      | Deploy bundled Docker Registry.                                            | `true`         |
-| `registry.service.type` | Service type for registry (`NodePort` for Minikube, `ClusterIP` for Prod). | `NodePort`     |
-| `secrets.gatewaySecret` | **Critical**: Shared secret for proxying requests to agents.               | `change-me...` |
+| Parameter                   | Description                                                  | Default             |
+| --------------------------- | ------------------------------------------------------------ | ------------------- |
+| `cloudProvider`             | Backend mode (`k8s` for this chart).                         | `k8s`               |
+| `storage.type`              | Storage backend: `s3` or `local`.                            | `s3`                |
+| `storage.local.pvc.enabled` | Create a PVC for local storage (if type is `local`).         | `false`             |
+| `postgresql.enabled`        | Deploy bundled Postgres.                                     | `true`              |
+| `postgresql.host`           | Hostname of Postgres (if enabled=false).                     | `postgresql`        |
+| `minio.enabled`             | Deploy bundled MinIO.                                        | `true`              |
+| `minio.endpoint`            | Internal S3 endpoint.                                        | `http://minio:9000` |
+| `registry.enabled`          | Deploy bundled Docker Registry.                              | `true`              |
+| `secrets.gatewaySecret`     | **Critical**: Shared secret for proxying requests to agents. | `change-me...`      |
 
 ## 🔧 Troubleshooting
 

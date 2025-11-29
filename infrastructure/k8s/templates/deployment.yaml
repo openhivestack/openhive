@@ -26,7 +26,7 @@ spec:
           command: ["/bin/sh", "-c", "npx prisma@6.19.0 migrate deploy"]
           env:
             - name: DATABASE_URL
-              value: "postgresql://{{ .Values.postgresql.auth.username }}:{{ .Values.postgresql.auth.password }}@postgresql:5432/{{ .Values.postgresql.auth.database }}"
+              value: "postgresql://{{ .Values.postgresql.auth.username }}:{{ .Values.postgresql.auth.password }}@{{ .Values.postgresql.host | default "postgresql" }}:{{ .Values.postgresql.port | default "5432" }}/{{ .Values.postgresql.auth.database }}"
       containers:
         - name: {{ .Chart.Name }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
@@ -37,7 +37,7 @@ spec:
               protocol: TCP
           env:
             - name: DATABASE_URL
-              value: "postgresql://{{ .Values.postgresql.auth.username }}:{{ .Values.postgresql.auth.password }}@postgresql:5432/{{ .Values.postgresql.auth.database }}"
+              value: "postgresql://{{ .Values.postgresql.auth.username }}:{{ .Values.postgresql.auth.password }}@{{ .Values.postgresql.host | default "postgresql" }}:{{ .Values.postgresql.port | default "5432" }}/{{ .Values.postgresql.auth.database }}"
             - name: CLOUD_PROVIDER
               value: {{ .Values.cloudProvider | quote }}
             - name: K8S_NAMESPACE
@@ -55,15 +55,24 @@ spec:
             - name: K8S_REGISTRY_PULL_URL
               value: "localhost:30500"
 
+            - name: STORAGE_TYPE
+              value: {{ .Values.storage.type | quote }}
+            - name: STORAGE_PATH
+              value: {{ .Values.storage.local.path | quote }}
+            - name: K8S_STORAGE_PVC_NAME
+              value: "{{ include "openhive.fullname" . }}-storage"
+
+            {{- if eq .Values.storage.type "s3" }}
             - name: K8S_MINIO_ENDPOINT
-              value: "http://minio:9000"
+              value: {{ .Values.minio.endpoint | quote }}
             # For local development, we want generated presigned URLs to point to localhost
             - name: K8S_MINIO_PUBLIC_ENDPOINT
-              value: "http://localhost:9000"
+              value: {{ .Values.minio.publicEndpoint | quote }}
             - name: K8S_MINIO_ACCESS_KEY
               value: {{ .Values.minio.auth.rootUser | quote }}
             - name: K8S_MINIO_SECRET_KEY
               value: {{ .Values.minio.auth.rootPassword | quote }}
+            {{- end }}
             
             # Application Secrets
             - name: BETTER_AUTH_SECRET
@@ -101,3 +110,16 @@ spec:
 
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
+          
+          volumeMounts:
+            {{- if eq .Values.storage.type "local" }}
+            - name: storage
+              mountPath: {{ .Values.storage.local.path }}
+            {{- end }}
+      
+      volumes:
+        {{- if eq .Values.storage.type "local" }}
+        - name: storage
+          persistentVolumeClaim:
+            claimName: {{ include "openhive.fullname" . }}-storage
+        {{- end }}

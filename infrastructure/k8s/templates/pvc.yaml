@@ -1,0 +1,18 @@
+{{- if and (eq .Values.storage.type "local") .Values.storage.local.pvc.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "openhive.fullname" . }}-storage
+  labels:
+    {{- include "openhive.labels" . | nindent 4 }}
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: {{ .Values.storage.local.pvc.size }}
+  {{- if .Values.storage.local.pvc.storageClassName }}
+  storageClassName: {{ .Values.storage.local.pvc.storageClassName }}
+  {{- end }}
+{{- end }}
+

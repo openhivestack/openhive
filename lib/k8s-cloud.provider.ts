@@ -8,6 +8,8 @@ import {
   V1Deployment,
   V1Job,
   V1EnvVar,
+  V1Volume,
+  V1VolumeMount,
 } from "@kubernetes/client-node";
 import { CloudProvider, ServiceStatus } from "./cloud-provider.interface";
 import {
@@ -17,6 +19,9 @@ import {
   DeleteObjectCommand,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import * as fs from "fs/promises";
+import * as path from "path";
+import { config } from "./config";
 
 export class K8sCloudProvider implements CloudProvider {
   private k8sApi: CoreV1Api;
@@ -24,9 +29,14 @@ export class K8sCloudProvider implements CloudProvider {
   private k8sBatchApi: BatchV1Api;
   private k8sNetworkingApi: NetworkingV1Api;
 
+  // Storage Config
+  private storageType: "s3" | "local";
+  private storagePath: string;
+  private storagePvcName: string;
+
   // MinIO Client (S3 Compatible)
-  private s3Client: S3Client;
-  private s3SignerClient: S3Client;
+  private s3Client?: S3Client;
+  private s3SignerClient?: S3Client;
 
   // Config
   private namespace: string;
@@ -52,35 +62,43 @@ export class K8sCloudProvider implements CloudProvider {
       process.env.K8S_REGISTRY_PULL_URL || this.registryUrl;
     this.registrySecretName = process.env.K8S_REGISTRY_SECRET || "regcred";
 
-    // Initialize MinIO (S3 Compatible)
-    this.s3Client = new S3Client({
-      region: "us-east-1", // MinIO ignores this but SDK requires it
-      endpoint:
-        process.env.K8S_MINIO_ENDPOINT || "http://minio.openhive.svc:9000",
-      credentials: {
-        accessKeyId: process.env.K8S_MINIO_ACCESS_KEY || "minioadmin",
-        secretAccessKey: process.env.K8S_MINIO_SECRET_KEY || "minioadmin",
-      },
-      forcePathStyle: true, // Required for MinIO
-    });
+    // Storage Configuration
+    this.storageType = (process.env.STORAGE_TYPE as "s3" | "local") || "s3";
+    this.storagePath = process.env.STORAGE_PATH || "/var/lib/openhive/storage";
+    this.storagePvcName =
+      process.env.K8S_STORAGE_PVC_NAME || "openhive-storage";
 
-    // Initialize MinIO Signer Client (For Pre-signed URLs)
-    // Uses public endpoint if available, otherwise falls back to internal
-    this.s3SignerClient = new S3Client({
-      region: "us-east-1",
-      endpoint:
-        process.env.K8S_MINIO_PUBLIC_ENDPOINT ||
-        process.env.K8S_MINIO_ENDPOINT ||
-        "http://minio.openhive.svc:9000",
-      credentials: {
-        accessKeyId: process.env.K8S_MINIO_ACCESS_KEY || "minioadmin",
-        secretAccessKey: process.env.K8S_MINIO_SECRET_KEY || "minioadmin",
-      },
-      forcePathStyle: true,
-    });
+    if (this.storageType === "s3") {
+      // Initialize MinIO (S3 Compatible)
+      this.s3Client = new S3Client({
+        region: "us-east-1", // MinIO ignores this but SDK requires it
+        endpoint:
+          process.env.K8S_MINIO_ENDPOINT || "http://minio.openhive.svc:9000",
+        credentials: {
+          accessKeyId: process.env.K8S_MINIO_ACCESS_KEY || "minioadmin",
+          secretAccessKey: process.env.K8S_MINIO_SECRET_KEY || "minioadmin",
+        },
+        forcePathStyle: true, // Required for MinIO
+      });
+
+      // Initialize MinIO Signer Client (For Pre-signed URLs)
+      // Uses public endpoint if available, otherwise falls back to internal
+      this.s3SignerClient = new S3Client({
+        region: "us-east-1",
+        endpoint:
+          process.env.K8S_MINIO_PUBLIC_ENDPOINT ||
+          process.env.K8S_MINIO_ENDPOINT ||
+          "http://minio.openhive.svc:9000",
+        credentials: {
+          accessKeyId: process.env.K8S_MINIO_ACCESS_KEY || "minioadmin",
+          secretAccessKey: process.env.K8S_MINIO_SECRET_KEY || "minioadmin",
+        },
+        forcePathStyle: true,
+      });
+    }
   }
 
-  // --- Storage (MinIO) ---
+  // --- Storage ---
 
   generateAgentKey(
     ownerId: string,
@@ -91,8 +109,19 @@ export class K8sCloudProvider implements CloudProvider {
   }
 
   async deleteFile(key: string): Promise<void> {
+    if (this.storageType === "local") {
+      try {
+        await fs.unlink(path.join(this.storagePath, key));
+      } catch (error: any) {
+        if (error.code !== "ENOENT") {
+          console.warn(`Failed to delete local file ${key}:`, error);
+        }
+      }
+      return;
+    }
+
     try {
-      await this.s3Client.send(
+      await this.s3Client!.send(
         new DeleteObjectCommand({
           Bucket: this.storageBucket,
           Key: key,
@@ -108,20 +137,41 @@ export class K8sCloudProvider implements CloudProvider {
     contentType: string = "application/gzip",
     expiresIn: number = 3600
   ): Promise<string> {
+    if (this.storageType === "local") {
+      // key format: agents/ownerId/agentName/version.tar.gz
+      const parts = key.split("/");
+      const agentName = parts.length >= 3 ? parts[2] : "unknown";
+
+      // Return URL to our own API endpoint
+      // We encode the key to ensure it's safe in the URL
+      return `${
+        config.appUrl
+      }/api/agent/${agentName}/upload?key=${encodeURIComponent(key)}`;
+    }
+
     const command = new PutObjectCommand({
       Bucket: this.storageBucket,
       Key: key,
       ContentType: contentType,
     });
-    return getSignedUrl(this.s3SignerClient, command, { expiresIn });
+    return getSignedUrl(this.s3SignerClient!, command, { expiresIn });
   }
 
   async getDownloadUrl(key: string, expiresIn: number = 300): Promise<string> {
+    if (this.storageType === "local") {
+      const parts = key.split("/");
+      const agentName = parts.length >= 3 ? parts[2] : "unknown";
+
+      return `${
+        config.appUrl
+      }/api/agent/${agentName}/download?key=${encodeURIComponent(key)}`;
+    }
+
     const command = new GetObjectCommand({
       Bucket: this.storageBucket,
       Key: key,
     });
-    return getSignedUrl(this.s3SignerClient, command, { expiresIn });
+    return getSignedUrl(this.s3SignerClient!, command, { expiresIn });
   }
 
   // --- Service Management ---
@@ -283,8 +333,109 @@ export class K8sCloudProvider implements CloudProvider {
     const sourceKey = this.generateAgentKey(ownerId, agentName, version);
     const image = `${this.registryUrl}/${agentName}:${version}`;
 
-    // We need a way to pass the source code. Kaniko supports S3.
-    // Since we are using MinIO (S3 compatible), we can configure Kaniko to use it.
+    // We need a way to pass the source code. Kaniko supports S3 and Local Dir.
+
+    const kanikoArgs = [
+      `--dockerfile=Dockerfile`,
+      `--destination=${image}`,
+      `--insecure`,
+      `--skip-tls-verify`,
+      `--skip-tls-verify-pull`,
+    ];
+
+    const volumeMounts: V1VolumeMount[] = [
+      {
+        name: "registry-creds",
+        mountPath: "/kaniko/.docker/",
+        readOnly: true,
+      },
+    ];
+
+    const volumes: V1Volume[] = [
+      {
+        name: "registry-creds",
+        secret: {
+          secretName: this.registrySecretName,
+          items: [{ key: ".dockerconfigjson", path: "config.json" }],
+        },
+      },
+    ];
+
+    let envVars: V1EnvVar[] = [];
+    let initContainers: any[] = [];
+
+    if (this.storageType === "local") {
+      // Local Storage:
+      // Kaniko doesn't support extracting tarball from local file via dir:// context directly if it expects a directory.
+      // So we use an init container to extract the tarball from the PVC to a shared emptyDir volume.
+
+      const storageMountPath = "/storage";
+      const contextMountPath = "/workspace/context"; // Shared volume for extracted context
+
+      // Init Container to extract source code
+      initContainers.push({
+        name: "extract-source",
+        image: "busybox",
+        command: [
+          "sh",
+          "-c",
+          `mkdir -p ${contextMountPath} && tar -xzf ${storageMountPath}/${sourceKey} -C ${contextMountPath}`,
+        ],
+        volumeMounts: [
+          {
+            name: "storage",
+            mountPath: storageMountPath,
+            readOnly: true,
+          },
+          {
+            name: "context",
+            mountPath: contextMountPath,
+          },
+        ],
+      });
+
+      // Kaniko uses the extracted context directory
+      kanikoArgs.push(`--context=dir://${contextMountPath}`);
+
+      // Mount the shared context volume to Kaniko
+      volumeMounts.push({
+        name: "context",
+        mountPath: contextMountPath,
+        readOnly: true,
+      });
+
+      // Define Volumes
+      volumes.push({
+        name: "storage",
+        persistentVolumeClaim: {
+          claimName: this.storagePvcName,
+        },
+      });
+      volumes.push({
+        name: "context",
+        emptyDir: {},
+      });
+    } else {
+      // S3 Storage
+      kanikoArgs.push(`--context=s3://${this.storageBucket}/${sourceKey}`);
+
+      envVars = [
+        {
+          name: "AWS_ACCESS_KEY_ID",
+          value: process.env.K8S_MINIO_ACCESS_KEY,
+        },
+        {
+          name: "AWS_SECRET_ACCESS_KEY",
+          value: process.env.K8S_MINIO_SECRET_KEY,
+        },
+        { name: "AWS_REGION", value: "us-east-1" },
+        {
+          name: "S3_ENDPOINT",
+          value: process.env.K8S_MINIO_ENDPOINT,
+        },
+        { name: "S3_FORCE_PATH_STYLE", value: "true" },
+      ];
+    }
 
     const job: V1Job = {
       metadata: {
@@ -297,54 +448,18 @@ export class K8sCloudProvider implements CloudProvider {
         template: {
           spec: {
             restartPolicy: "Never",
+            initContainers:
+              initContainers.length > 0 ? initContainers : undefined,
             containers: [
               {
                 name: "kaniko",
                 image: "gcr.io/kaniko-project/executor:latest",
-                args: [
-                  `--dockerfile=Dockerfile`,
-                  `--context=s3://${this.storageBucket}/${sourceKey}`,
-                  `--destination=${image}`,
-                  `--insecure`,
-                  `--skip-tls-verify`,
-                  `--skip-tls-verify-pull`,
-                  // Kaniko specific flags for S3/MinIO
-                  // We might need to inject credentials or config here
-                ],
-                env: [
-                  {
-                    name: "AWS_ACCESS_KEY_ID",
-                    value: process.env.K8S_MINIO_ACCESS_KEY,
-                  },
-                  {
-                    name: "AWS_SECRET_ACCESS_KEY",
-                    value: process.env.K8S_MINIO_SECRET_KEY,
-                  },
-                  { name: "AWS_REGION", value: "us-east-1" },
-                  {
-                    name: "S3_ENDPOINT",
-                    value: process.env.K8S_MINIO_ENDPOINT,
-                  },
-                  { name: "S3_FORCE_PATH_STYLE", value: "true" },
-                ],
-                volumeMounts: [
-                  {
-                    name: "registry-creds",
-                    mountPath: "/kaniko/.docker/",
-                    readOnly: true,
-                  },
-                ],
+                args: kanikoArgs,
+                env: envVars,
+                volumeMounts: volumeMounts,
               },
             ],
-            volumes: [
-              {
-                name: "registry-creds",
-                secret: {
-                  secretName: this.registrySecretName,
-                  items: [{ key: ".dockerconfigjson", path: "config.json" }],
-                },
-              },
-            ],
+            volumes: volumes,
           },
         },
       },
