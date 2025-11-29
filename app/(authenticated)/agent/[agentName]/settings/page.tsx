@@ -18,7 +18,7 @@ import { cn } from "@/lib/utils";
 import { DotPattern } from "@/components/ui/dot-pattern";
 import { useParams } from "next/navigation";
 import { useState } from "react";
-import useSWR from "swr";
+import { useAgent } from "@/hooks/use-agent";
 import { toast } from "sonner";
 import { DateTime } from "luxon";
 import {
@@ -32,13 +32,11 @@ import {
 } from "@/components/ui/dialog";
 import { Spinner } from "@/components/ui/spinner";
 
-const fetcher = (url: string) => fetch(url).then((res) => res.json());
-
 export default function SettingsPage() {
   const params = useParams();
   const agentName = params.agentName as string;
 
-  const { data: agent, isLoading } = useSWR(`/api/agent/${agentName}`, fetcher);
+  const { agent, loading: isLoading } = useAgent();
   const [isDeleting, setIsDeleting] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
@@ -61,11 +59,13 @@ export default function SettingsPage() {
     }
   };
 
-  const lastUpdated = agent?.updatedAt
-    ? DateTime.fromISO(agent.updatedAt).toRelative()
-    : isLoading
-    ? <Spinner className="size-3 animate-spin" />
-    : "Never";
+  const lastUpdated = agent?.updatedAt ? (
+    DateTime.fromISO(agent.updatedAt as unknown as string).toRelative()
+  ) : isLoading ? (
+    <Spinner className="size-3 animate-spin" />
+  ) : (
+    "Never"
+  );
 
   return (
     <div className="p-4 space-y-6">

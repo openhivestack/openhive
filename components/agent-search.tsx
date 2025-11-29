@@ -1,14 +1,15 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import { Search, X } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
+import { InputGroup, InputGroupInput, InputGroupAddon } from "./ui/input-group";
+import { cn } from "@/lib/utils";
 
 interface AgentSearchProps {
   onSearch: (query: string) => void;
   initialQuery?: string;
+  className?: string;
 }
 
 const FILTERS = [
@@ -18,7 +19,7 @@ const FILTERS = [
   { name: "is:private", description: "Show only private agents", type: "flag" },
 ];
 
-export function AgentSearch({ onSearch, initialQuery = "" }: AgentSearchProps) {
+export function AgentSearch({ onSearch, initialQuery = "", className }: AgentSearchProps) {
   const [query, setQuery] = useState(initialQuery);
   const [isFocused, setIsFocused] = useState(false);
   const searchContainerRef = useRef<HTMLDivElement>(null);
@@ -40,6 +41,7 @@ export function AgentSearch({ onSearch, initialQuery = "" }: AgentSearchProps) {
 
   const handleAddFilter = (filter: (typeof FILTERS)[0]) => {
     let newQueryPart = `${filter.name}`;
+    
     if (filter.type === "value") {
       newQueryPart += ":";
     }
@@ -64,71 +66,41 @@ export function AgentSearch({ onSearch, initialQuery = "" }: AgentSearchProps) {
     };
   }, []);
 
-  const renderHighlightedQuery = () => {
-    return query.split(/(\s+)/).map((segment, index) => {
-      if (/\s+/.test(segment)) {
-        return <span key={index}>{segment}</span>;
-      }
-      const parts = segment.split(":");
-      if (parts.length > 1) {
-        const key = parts[0];
-        const value = parts.slice(1).join(":");
-        return (
-          <span key={index}>
-            {key}:
-            <span className="text-primary font-bold py-0.25 rounded-sm">
-              {value}
-            </span>
-          </span>
-        );
-      }
-      return <span key={index}>{segment}</span>;
-    });
-  };
-
   return (
-    <div className="relative" ref={searchContainerRef}>
+    <div className={cn("relative", className)} ref={searchContainerRef}>
       <div className="flex items-center">
         <div className="relative w-full">
-          <div className="absolute inset-y-0 left-0 px-3 flex items-center pointer-events-none text-base md:text-sm whitespace-pre">
-            {query ? (
-              renderHighlightedQuery()
-            ) : (
-              <span className="text-muted-foreground">
-                Search agents by name, skill, etc.
-              </span>
-            )}
-          </div>
-          <Input
-            placeholder=""
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            onFocus={() => setIsFocused(true)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                handleSearch();
-              }
-            }}
-            className="rounded-r-none bg-muted/50 text-transparent shadow-none caret-foreground w-full h-9 pr-10"
-          />
-          {query && (
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleClear}
-              className="absolute inset-y-0 right-0 h-full"
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          )}
+          <InputGroup className="rounded-lg">
+            <InputGroupInput
+              placeholder="Search agents by name, skill, etc."
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onFocus={() => setIsFocused(true)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  handleSearch();
+                }
+              }}
+              className="caret-foreground bg-transparent w-full h-9"
+            />
+            <InputGroupAddon align="inline-end">
+              {query && (
+                <div
+                  className="bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer flex size-6 items-center justify-center rounded-full"
+                  onClick={handleClear}
+                >
+                  <X className="size-3" />
+                </div>
+              )}
+              <div
+                className="bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer flex size-6 items-center justify-center rounded-full"
+                onClick={handleSearch}
+              >
+                <Search className="size-3" />
+              </div>
+            </InputGroupAddon>
+          </InputGroup>
         </div>
-        <Button
-          onClick={handleSearch}
-          className="rounded-l-none bg-muted/50"
-          variant="ghost"
-        >
-          <Search className="h-4 w-4" />
-        </Button>
       </div>
 
       {isFocused && (

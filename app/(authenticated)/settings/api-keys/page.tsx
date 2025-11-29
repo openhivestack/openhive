@@ -140,161 +140,164 @@ export default function ApiKeysPage() {
   };
 
   return (
-    <div className="flex flex-col h-full space-y-6">
+    <div className="flex flex-col h-full space-y-6 p-4">
       <div className="w-full space-y-6">
-        <div className="flex justify-end">
-          <Dialog open={isDialogOpen} onOpenChange={handleDialogChange}>
-            <DialogTrigger asChild>
-              <Button size="sm">
-                <Plus className="mr-2 size-4" />
-                Generate New Key
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-md">
-              <DialogHeader>
-                <DialogTitle>Generate API Key</DialogTitle>
-                <DialogDescription>
-                  Create a new API key to authenticate your requests.
-                </DialogDescription>
-              </DialogHeader>
+        <div className="container mx-auto max-w-2/3">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between gap-2">
+                <p className="text-sm font-bold text-primary mb-2">
+                  Your API Key
+                </p>
+                <Dialog open={isDialogOpen} onOpenChange={handleDialogChange}>
+                  <DialogTrigger asChild>
+                    <Button size="sm">
+                      <Plus className="mr-2 size-4" />
+                      Generate New Key
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                      <DialogTitle>Generate API Key</DialogTitle>
+                      <DialogDescription>
+                        Create a new API key to authenticate your requests.
+                      </DialogDescription>
+                    </DialogHeader>
 
-              {!newKey ? (
-                <div className="grid gap-4 py-4">
-                  <div className="grid gap-2">
-                    <Label htmlFor="name">Key Name</Label>
-                    <Input
-                      id="name"
-                      placeholder="e.g. Development, CI/CD"
-                      autoComplete="off"
-                      value={newKeyName}
-                      onChange={(e) => setNewKeyName(e.target.value)}
-                    />
-                  </div>
+                    {!newKey ? (
+                      <div className="grid gap-4 py-4">
+                        <div className="grid gap-2">
+                          <Label htmlFor="name">Key Name</Label>
+                          <Input
+                            id="name"
+                            placeholder="e.g. Development, CI/CD"
+                            autoComplete="off"
+                            value={newKeyName}
+                            onChange={(e) => setNewKeyName(e.target.value)}
+                          />
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="grid gap-4 py-4">
+                        <div className="rounded-md bg-muted p-4">
+                          <div className="flex items-center justify-between">
+                            <p className="text-sm font-medium text-muted-foreground mb-2">
+                              Your API Key
+                            </p>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="size-8"
+                              onClick={() => copyToClipboard(newKey)}
+                            >
+                              {copied ? (
+                                <Check className="size-4 text-green-500" />
+                              ) : (
+                                <Copy className="size-4" />
+                              )}
+                            </Button>
+                          </div>
+                          <div className="break-all font-mono text-sm bg-background p-2 rounded border">
+                            {newKey}
+                          </div>
+                          <p className="text-xs text-destructive mt-4">
+                            Make sure to copy this key now. You won&apos;t be
+                            able to see it again!
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    <DialogFooter>
+                      {!newKey ? (
+                        <Button
+                          onClick={handleCreateKey}
+                          disabled={isCreating || !newKeyName.trim()}
+                        >
+                          {isCreating && (
+                            <Loader2 className="mr-2 size-4 animate-spin" />
+                          )}
+                          Create Key
+                        </Button>
+                      ) : (
+                        <Button onClick={() => handleDialogChange(false)}>
+                          Done
+                        </Button>
+                      )}
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              </CardTitle>
+              <CardDescription>
+                These keys can be used to authenticate with the OpenHive CLI and
+                SDKs.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {isLoading ? (
+                <div className="flex justify-center py-8">
+                  <Loader2 className="size-8 animate-spin text-muted-foreground" />
+                </div>
+              ) : keys.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-12 text-center text-muted-foreground">
+                  <Key className="size-12 mb-4 opacity-20" />
+                  <h3 className="text-lg font-semibold">No API keys yet</h3>
+                  <p className="text-sm max-w-sm mt-2">
+                    Generate your first API key to start building with OpenHive.
+                  </p>
                 </div>
               ) : (
-                <div className="grid gap-4 py-4">
-                  <div className="rounded-md bg-muted p-4">
-                    <div className="flex items-center justify-between">
-                      <p className="text-sm font-medium text-muted-foreground mb-2">
-                        Your API Key
-                      </p>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="size-8"
-                        onClick={() => copyToClipboard(newKey)}
-                      >
-                        {copied ? (
-                          <Check className="size-4 text-green-500" />
-                        ) : (
-                          <Copy className="size-4" />
-                        )}
-                      </Button>
-                    </div>
-                    <div className="break-all font-mono text-sm bg-background p-2 rounded border">
-                      {newKey}
-                    </div>
-                    <p className="text-xs text-destructive mt-4">
-                      Make sure to copy this key now. You won&apos;t be able to
-                      see it again!
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              <DialogFooter>
-                {!newKey ? (
-                  <Button
-                    onClick={handleCreateKey}
-                    disabled={isCreating || !newKeyName.trim()}
-                  >
-                    {isCreating && (
-                      <Loader2 className="mr-2 size-4 animate-spin" />
-                    )}
-                    Create Key
-                  </Button>
-                ) : (
-                  <Button onClick={() => handleDialogChange(false)}>
-                    Done
-                  </Button>
-                )}
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        </div>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Your Keys</CardTitle>
-            <CardDescription>
-              These keys can be used to authenticate with the OpenHive CLI and
-              SDKs.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {isLoading ? (
-              <div className="flex justify-center py-8">
-                <Loader2 className="size-8 animate-spin text-muted-foreground" />
-              </div>
-            ) : keys.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-12 text-center text-muted-foreground">
-                <Key className="size-12 mb-4 opacity-20" />
-                <h3 className="text-lg font-semibold">No API keys yet</h3>
-                <p className="text-sm max-w-sm mt-2">
-                  Generate your first API key to start building with OpenHive.
-                </p>
-              </div>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Prefix</TableHead>
-                    <TableHead>Created</TableHead>
-                    <TableHead>Last Used</TableHead>
-                    <TableHead className="w-[100px]"></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {keys.map((key) => (
-                    <TableRow key={key.id}>
-                      <TableCell className="font-medium">
-                        {key.name || "Untitled"}
-                      </TableCell>
-                      <TableCell className="font-mono text-xs">
-                        {key.prefix}
-                        ••••••••
-                      </TableCell>
-                      <TableCell>
-                        {DateTime.fromJSDate(
-                          new Date(key.createdAt)
-                        ).toRelative()}
-                      </TableCell>
-                      <TableCell>
-                        {key.lastRequest
-                          ? DateTime.fromJSDate(
-                              new Date(key.lastRequest)
-                            ).toRelative()
-                          : "Never"}
-                      </TableCell>
-                      <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="text-muted-foreground hover:text-destructive"
-                          onClick={() => handleDeleteKey(key.id)}
-                        >
-                          <Trash2 className="size-4" />
-                          <span className="sr-only">Delete</span>
-                        </Button>
-                      </TableCell>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Prefix</TableHead>
+                      <TableHead>Created</TableHead>
+                      <TableHead>Last Used</TableHead>
+                      <TableHead className="w-[100px]"></TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
-          </CardContent>
-        </Card>
+                  </TableHeader>
+                  <TableBody>
+                    {keys.map((key) => (
+                      <TableRow key={key.id}>
+                        <TableCell className="font-medium">
+                          {key.name || "Untitled"}
+                        </TableCell>
+                        <TableCell className="font-mono text-xs">
+                          {key.prefix}
+                          ••••••••
+                        </TableCell>
+                        <TableCell>
+                          {DateTime.fromJSDate(
+                            new Date(key.createdAt)
+                          ).toRelative()}
+                        </TableCell>
+                        <TableCell>
+                          {key.lastRequest
+                            ? DateTime.fromJSDate(
+                                new Date(key.lastRequest)
+                              ).toRelative()
+                            : "Never"}
+                        </TableCell>
+                        <TableCell>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-muted-foreground hover:text-destructive"
+                            onClick={() => handleDeleteKey(key.id)}
+                          >
+                            <Trash2 className="size-4" />
+                            <span className="sr-only">Delete</span>
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );

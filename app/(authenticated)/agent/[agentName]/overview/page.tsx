@@ -2,8 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { openhive } from "@/lib/openhive";
-import { Agent } from "@/lib/types";
+import { useAgent } from "@/hooks/use-agent";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -15,11 +14,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Activity as ActivityIcon,
-  BotIcon,
   Clock,
-  Play,
-  Pause,
-  Loader2,
   XCircle,
   CircleCheck,
 } from "lucide-react";
@@ -31,7 +26,6 @@ import {
   ChartConfig,
 } from "@/components/ui/chart";
 import colors from "tailwindcss/colors";
-import { ShineBorder } from "@/components/ui/shine-border";
 import { Item, ItemMedia, ItemContent, ItemTitle } from "@/components/ui/item";
 import { AgentCard } from "@/components/agent-card";
 import { AgentVersions } from "@/components/agent-versions";
@@ -43,9 +37,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
 import { DateTime } from "luxon";
-import { toast } from "sonner";
 import { Terminal, Zap, ChevronLeft, ChevronRight } from "lucide-react";
 import useSWR from "swr";
 
@@ -88,56 +80,9 @@ export default function AgentOverviewPage() {
   const params = useParams();
   const agentName = params.agentName as string;
 
-  const [agent, setAgent] = useState<Agent | null>(null);
-  const [metrics, setMetrics] = useState<Metrics | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [loadingMetrics, setLoadingMetrics] = useState(true);
+  const { agent, loading } = useAgent();
   const [page, setPage] = useState(1);
   const [versionCount, setVersionCount] = useState(0);
-
-  const [togglingRuntime, setTogglingRuntime] = useState(false);
-
-  // Fetch Runtime Status with SWR
-  const { data: runtimeData, mutate: mutateRuntime } = useSWR(
-    `/api/agent/${agentName}/runtime`,
-    fetcher,
-    {
-      refreshInterval: (data) => {
-        // Poll faster if transitioning
-        if (
-          data?.status === "STARTING" ||
-          data?.status === "STOPPING" ||
-          data?.status === "PROVISIONING"
-        )
-          return 1000;
-        // Poll slower if stable
-        return 5000;
-      },
-    }
-  );
-
-  const runtimeStatus = runtimeData?.status || "STOPPED";
-  const loadingRuntime = !runtimeData && !togglingRuntime;
-  const isTransitioning =
-    runtimeStatus === "STARTING" ||
-    runtimeStatus === "STOPPING" ||
-    runtimeStatus === "PROVISIONING";
-
-  // Fetch Agent Metadata
-  useEffect(() => {
-    const fetchAgent = async () => {
-      try {
-        const data = await openhive.get(agentName);
-        // @ts-expect-error - SDK returns AgentCard, but we treat it as Agent
-        setAgent(data);
-      } catch (error) {
-        console.error("Failed to fetch agent:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    if (agentName) fetchAgent();
-  }, [agentName]);
 
   // Fetch Version Count (we can use the separate versions API we made or update the get method)
   // For simplicity, let's just fetch the full list from the new API to get the count
@@ -160,20 +105,13 @@ export default function AgentOverviewPage() {
   }, [agentName]);
 
   // Fetch Metrics with SWR
-  const { data: metricsData } = useSWR(
+  const { data: metrics, isLoading: loadingMetrics } = useSWR<Metrics>(
     `/api/agent/${agentName}/metrics`,
     fetcher,
     {
       refreshInterval: 30000, // Refresh every 30 seconds
     }
   );
-
-  useEffect(() => {
-    if (metricsData) {
-      setMetrics(metricsData);
-      setLoadingMetrics(false);
-    }
-  }, [metricsData]);
 
   // Fetch Activities with SWR
   const { data: activitiesData, isLoading: activitiesLoading } = useSWR(
@@ -189,39 +127,6 @@ export default function AgentOverviewPage() {
   const pagination: Pagination | null = activitiesData?.pagination || null;
   const loadingActivities = activitiesLoading;
 
-  const toggleRuntime = async () => {
-    setTogglingRuntime(true);
-    const action = runtimeStatus === "RUNNING" ? "stop" : "start";
-
-    // Optimistic Update
-    const optimisticStatus = action === "start" ? "STARTING" : "STOPPING";
-    await mutateRuntime({ ...runtimeData, status: optimisticStatus }, false);
-
-    try {
-      const res = await fetch(`/api/agent/${agentName}/runtime`, {
-        method: "POST",
-        body: JSON.stringify({ action }),
-        headers: { "Content-Type": "application/json" },
-      });
-
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.message || "Failed to toggle runtime");
-      }
-
-      toast.success(`Agent ${action === "start" ? "starting" : "stopping"}...`);
-
-      // Trigger a revalidation
-      mutateRuntime();
-    } catch (error: any) {
-      toast.error(error.message);
-      // Revalidate to get true status on error
-      mutateRuntime();
-    } finally {
-      setTogglingRuntime(false);
-    }
-  };
-
   if (loading) {
     return (
       <div className="space-y-4">
@@ -236,60 +141,7 @@ export default function AgentOverviewPage() {
   }
 
   return (
-    <div className="space-y-4">
-      {/* Header */}
-      <div className="flex justify-between items-start border-b border-border pb-4">
-        <div className="flex items-center gap-2">
-          <div className="relative size-8 overflow-hidden rounded-full flex items-center justify-center border border-border">
-            <ShineBorder />
-            <BotIcon className="size-4 text-muted-foreground" />
-          </div>
-          <div className="flex flex-col">
-            <div className="flex items-center gap-2">
-              <h1 className="text-sm font-bold">{agent.name}</h1>
-            </div>
-            <p className="text-xs text-muted-foreground flex items-center gap-1">
-              {agent.version}
-              <span className="text-sm text-muted-foreground font-bold">•</span>
-              {agent.private ? (
-                <span className="text-xs text-red-500">Private</span>
-              ) : (
-                <span className="text-xs text-green-500">Public</span>
-              )}
-              <span className="text-sm text-muted-foreground font-bold">•</span>
-              A2A {agent.protocolVersion}
-              <span className="text-sm text-muted-foreground font-bold">•</span>
-              {loadingRuntime ? (
-                <Skeleton className="h-4 w-12" />
-              ) : (
-                <Badge
-                  variant={runtimeStatus === "RUNNING" ? "running" : "stopped"}
-                  size="sm"
-                >
-                  {runtimeStatus === "RUNNING" ? "Running" : runtimeStatus}
-                </Badge>
-              )}
-            </p>
-          </div>
-        </div>
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={toggleRuntime}
-            disabled={loadingRuntime || togglingRuntime || isTransitioning}
-          >
-            {togglingRuntime || loadingRuntime ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : runtimeStatus === "RUNNING" ? (
-              <Pause className="h-4 w-4 fill-current" />
-            ) : (
-              <Play className="h-4 w-4 fill-current" />
-            )}
-          </Button>
-        </div>
-      </div>
-
+    <div className="space-y-4 px-4 py-4">
       {/* Stat Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="gap-2">

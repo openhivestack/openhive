@@ -91,9 +91,6 @@ export default function HomePage() {
           </Link>
         </Button>
       </div>
-      <div className="w-full max-w-3xl mx-auto">
-        <PromptBox />
-      </div>
       <div className="w-full max-w-sm mx-auto">
         <CommandBox command="npx @open-hive/cli agent create my-new-agent" />
       </div>

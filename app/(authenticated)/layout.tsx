@@ -3,6 +3,8 @@
 import { ReactNode, useEffect } from "react";
 import { useSession } from "@/lib/auth-client";
 import { useRouter } from "next/navigation";
+import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
+import { AppSidebar } from "@/components/app-sidebar";
 
 interface Props {
   children: ReactNode;
@@ -24,7 +26,12 @@ export default function Layout({ children }: Props) {
 
   return (
     <>
-      <div>{children}</div>
+      <SidebarProvider>
+      <AppSidebar />
+      <SidebarInset>
+        {children}
+      </SidebarInset>
+    </SidebarProvider>
     </>
   );
 }
