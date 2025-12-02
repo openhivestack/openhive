@@ -79,6 +79,12 @@ app.use('/:agentName', (req, res, next) => {
   })(req, res, next);
 });
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`OpenHive Gateway Service running on port ${PORT}`);
 });
+
+// Support long-running connections for SSE and large uploads (1 hour timeout)
+const TIMEOUT_MS = 60 * 60 * 1000;
+server.keepAliveTimeout = TIMEOUT_MS;
+server.headersTimeout = TIMEOUT_MS + 5000; // Must be greater than keepAliveTimeout
+server.requestTimeout = TIMEOUT_MS;

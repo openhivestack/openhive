@@ -12,6 +12,7 @@ import {
   InputGroupInput,
   InputGroupButton,
 } from "@/components/ui/input-group";
+import { api } from "@/lib/api-client";
 
 type EnvVar = {
   key: string;
@@ -24,39 +25,21 @@ export default function EnvironmentVariablesPage() {
   const agentName = params.agentName as string;
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [isDeployed, setIsDeployed] = useState(false);
+  // We default to true now as the new API handles existence checks internally
+  // and we want to show the UI even if empty.
+  const [isDeployed, setIsDeployed] = useState(true);
   const [envVars, setEnvVars] = useState<EnvVar[]>([]);
 
   useEffect(() => {
     async function fetchData() {
       try {
-        // 1. Check Runtime Status
-        const statusRes = await fetch(`/api/agent/${agentName}/runtime`);
-        if (!statusRes.ok) throw new Error("Failed to check status");
-        const statusData = await statusRes.json();
-
-        const serviceStatus = statusData.details?.status;
-        if (serviceStatus === "NOT_FOUND") {
-          setIsDeployed(false);
-          setLoading(false);
-          return;
-        }
-
-        setIsDeployed(true);
-
-        // 2. Fetch Env Vars
-        const envRes = await fetch(`/api/agent/${agentName}/env`);
-        if (envRes.ok) {
-          const envData = await envRes.json();
-          const vars = Object.entries(envData.env || {}).map(
-            ([key, value]) => ({
-              key,
-              value: value as string,
-              visible: false,
-            })
-          );
-          setEnvVars(vars);
-        }
+        const config = await api.agent.config.get(agentName);
+        const vars = Object.entries(config || {}).map(([key, value]) => ({
+          key,
+          value: value as string,
+          visible: false,
+        }));
+        setEnvVars(vars);
       } catch (error) {
         console.error("Failed to load data:", error);
         toast.error("Failed to load environment variables");
@@ -101,15 +84,7 @@ export default function EnvironmentVariablesPage() {
         }
       });
 
-      const res = await fetch(`/api/agent/${agentName}/env`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ env: envObj }),
-      });
-
-      if (!res.ok) throw new Error("Failed to save");
+      await api.agent.config.update(agentName, envObj);
 
       toast.success("Environment variables updated");
     } catch (error) {
@@ -128,20 +103,9 @@ export default function EnvironmentVariablesPage() {
     );
   }
 
-  if (!isDeployed) {
-    return (
-      <div className="flex flex-col items-center justify-center py-12 text-center">
-        <div className="rounded-full bg-muted p-4">
-          <Loader2 className="h-8 w-8 text-muted-foreground" />
-        </div>
-        <h2 className="mt-4 text-lg font-semibold">Agent Not Deployed</h2>
-        <p className="mt-2 text-sm text-muted-foreground max-w-md">
-          Environment variables can only be configured for deployed agents.
-          Please deploy your agent first.
-        </p>
-      </div>
-    );
-  }
+  // Deprecated: isDeployed check removed/simplified as new API doesn't expose explicit "not deployed" state easily
+  // and we want to allow editing if possible or show empty.
+  // If the agent doesn't exist, saving will fail, which is handled.
 
   return (
     <div className="space-y-6">

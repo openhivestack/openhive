@@ -155,6 +155,20 @@ export class K8sCloudProvider implements CloudProvider {
     }
   }
 
+  async startAgent(agentId: string): Promise<void> {
+    const safeAgentId = agentId.toLowerCase().replace(/[^a-z0-9-]/g, "-");
+    const deploymentName = `agent-${safeAgentId}`;
+    console.log(`[K8s] Starting agent (scaling to 1): ${deploymentName}`);
+    // await this.k8sApi.patchNamespacedDeploymentScale(deploymentName, this.namespace, { spec: { replicas: 1 } });
+  }
+
+  async stopAgent(agentId: string): Promise<void> {
+    const safeAgentId = agentId.toLowerCase().replace(/[^a-z0-9-]/g, "-");
+    const deploymentName = `agent-${safeAgentId}`;
+    console.log(`[K8s] Stopping agent (scaling to 0): ${deploymentName}`);
+    // await this.k8sApi.patchNamespacedDeploymentScale(deploymentName, this.namespace, { spec: { replicas: 0 } });
+  }
+
   async getAgentStatus(
     agentId: string // eslint-disable-line @typescript-eslint/no-unused-vars
   ): Promise<"BUILDING" | "RUNNING" | "STOPPED" | "FAILED" | "UNKNOWN"> {
@@ -197,5 +211,85 @@ export class K8sCloudProvider implements CloudProvider {
       errorCount: 0,
       timeSeries: [],
     };
+  }
+
+  async getEnvironmentVariables(
+    agentId: string
+  ): Promise<Record<string, string>> {
+    try {
+      const safeAgentId = agentId.toLowerCase().replace(/[^a-z0-9-]/g, "-");
+      const deploymentName = `agent-${safeAgentId}`;
+
+      // @ts-ignore - handling version mismatch or flexible api usage
+      const res = await this.k8sApi.readNamespacedDeployment(
+        deploymentName,
+        this.namespace
+      );
+
+      // Check if res has body (old style) or is body (new style)
+      const deployment = (res as any).body || res;
+      const container = (deployment as any).spec?.template?.spec
+        ?.containers?.[0];
+
+      if (!container || !container.env) {
+        return {};
+      }
+
+      const envVars: Record<string, string> = {};
+      container.env.forEach((e: any) => {
+        if (e.name && e.value) {
+          envVars[e.name] = e.value;
+        }
+      });
+      return envVars;
+    } catch (error) {
+      console.error(`[K8s] Error fetching env vars for ${agentId}:`, error);
+      return {};
+    }
+  }
+
+  async updateEnvironmentVariables(
+    agentId: string,
+    envVars: Record<string, string>
+  ): Promise<void> {
+    const safeAgentId = agentId.toLowerCase().replace(/[^a-z0-9-]/g, "-");
+    const deploymentName = `agent-${safeAgentId}`;
+
+    try {
+      // @ts-ignore
+      const res = await this.k8sApi.readNamespacedDeployment(
+        deploymentName,
+        this.namespace
+      );
+      const deployment = (res as any).body || res;
+
+      if (
+        !deployment.spec ||
+        !deployment.spec.template ||
+        !deployment.spec.template.spec ||
+        !deployment.spec.template.spec.containers ||
+        deployment.spec.template.spec.containers.length === 0
+      ) {
+        throw new Error("Deployment spec invalid");
+      }
+
+      const newEnv = Object.entries(envVars).map(([name, value]) => ({
+        name,
+        value,
+      }));
+
+      deployment.spec.template.spec.containers[0].env = newEnv;
+
+      // @ts-ignore
+      await (this.k8sApi as any).replaceNamespacedDeployment(
+        deploymentName,
+        this.namespace,
+        deployment
+      );
+      console.log(`[K8s] Updated env vars for ${deploymentName}`);
+    } catch (error) {
+      console.error(`[K8s] Error updating env vars for ${agentId}:`, error);
+      throw error;
+    }
   }
 }

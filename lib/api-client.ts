@@ -4,6 +4,18 @@ import type { Agent, User } from "@prisma/client";
 // If running server-side or in a different environment, this might need adjustment.
 const BASE_URL = "";
 
+export interface PaginationMeta {
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+export interface PaginatedResponse<T> {
+  data: T[];
+  pagination: PaginationMeta;
+}
+
 export interface AgentVersion {
   version: string;
   createdAt: string;
@@ -83,34 +95,36 @@ export const api = {
   /**
    * Search for agents (alias for api.agent.search).
    */
-  search: async (query: string) => {
-    const data = await fetchJson<{ agents: AgentDetail[] }>("/agent/search", {
-      method: "POST",
-      body: JSON.stringify({ query }),
-    });
-    return data.agents;
+  search: async (query: string, page = 1, limit = 20) => {
+    return api.agent.search(query, page, limit);
   },
   agent: {
     /**
      * Search for agents by name, description, or tags.
      */
-    search: async (query: string) => {
-      const data = await fetchJson<{ agents: AgentDetail[] }>("/agent/search", {
+    search: async (query: string, page = 1, limit = 20) => {
+      const data = await fetchJson<{
+        agents: AgentDetail[];
+        pagination: PaginationMeta;
+      }>("/agent/search", {
         method: "POST",
-        body: JSON.stringify({ query }),
+        body: JSON.stringify({ query, page, limit }),
       });
-      return data.agents;
+      return data;
     },
 
     /**
      * List recent public agents.
      */
-    list: async () => {
-      const data = await fetchJson<{ agents: AgentDetail[] }>("/agent/search", {
+    list: async (page = 1, limit = 20) => {
+      const data = await fetchJson<{
+        agents: AgentDetail[];
+        pagination: PaginationMeta;
+      }>("/agent/search", {
         method: "POST",
-        body: JSON.stringify({ query: "" }),
+        body: JSON.stringify({ query: "", page, limit }),
       });
-      return data.agents;
+      return data;
     },
 
     /**
@@ -123,11 +137,47 @@ export const api = {
     /**
      * Get all versions for a specific agent.
      */
-    versions: async (agentName: string) => {
-      const data = await fetchJson<{ versions: AgentVersion[] }>(
-        `/agent/${agentName}/versions`
-      );
-      return data.versions;
+    versions: async (agentName: string, page = 1, limit = 20) => {
+      const data = await fetchJson<{
+        versions: AgentVersion[];
+        pagination: PaginationMeta;
+      }>(`/agent/${agentName}/versions?page=${page}&limit=${limit}`);
+      return data;
+    },
+
+    /**
+     * Start or stop the agent.
+     */
+    toggle: async (agentName: string, status: "running" | "stopped") => {
+      return await fetchJson<{
+        success: boolean;
+        status: string;
+        message: string;
+      }>(`/agent/${agentName}/toggle`, {
+        method: "POST",
+        body: JSON.stringify({ status }),
+      });
+    },
+
+    /**
+     * Manage agent configuration (environment variables).
+     */
+    config: {
+      get: async (agentName: string) => {
+        const data = await fetchJson<{ envVars: Record<string, string> }>(
+          `/agent/${agentName}/config`
+        );
+        return data.envVars;
+      },
+      update: async (agentName: string, envVars: Record<string, string>) => {
+        return await fetchJson<{ success: boolean }>(
+          `/agent/${agentName}/config`,
+          {
+            method: "POST",
+            body: JSON.stringify({ envVars }),
+          }
+        );
+      },
     },
 
     telemetry: {
@@ -146,7 +196,7 @@ export const api = {
        */
       metrics: async (
         agentName: string,
-        range: "24h" | "7d" | "30d" | "1h" = "24h"
+        range: "24h" | "48h" | "7d" | "30d" | "60d" | "1h" = "24h"
       ) => {
         const data = await fetchJson<{ metrics: AgentMetrics }>(
           `/agent/${agentName}/telemetry/metrics?range=${range}`
@@ -157,11 +207,12 @@ export const api = {
       /**
        * Get recent task executions.
        */
-      tasks: async (agentName: string, limit: number = 10) => {
-        const data = await fetchJson<{ tasks: AgentTask[] }>(
-          `/agent/${agentName}/telemetry/tasks?limit=${limit}`
-        );
-        return data.tasks;
+      tasks: async (agentName: string, page = 1, limit = 10) => {
+        const data = await fetchJson<{
+          tasks: AgentTask[];
+          pagination: PaginationMeta;
+        }>(`/agent/${agentName}/telemetry/tasks?page=${page}&limit=${limit}`);
+        return data;
       },
 
       /**

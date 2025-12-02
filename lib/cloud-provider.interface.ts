@@ -60,6 +60,16 @@ export interface CloudProvider {
   getInternalAgentUrl(agentId: string): Promise<string | null>;
 
   /**
+   * Start the agent (scale to 1)
+   */
+  startAgent(agentId: string): Promise<void>;
+
+  /**
+   * Stop the agent (scale to 0)
+   */
+  stopAgent(agentId: string): Promise<void>;
+
+  /**
    * Get executed tasks for the agent
    */
   getAgentTasks(agentId: string, limit?: number): Promise<AgentTask[]>;
@@ -68,4 +78,17 @@ export interface CloudProvider {
    * Get execution metrics for the agent
    */
   getAgentMetrics(agentId: string, range: string): Promise<AgentMetrics>;
+
+  /**
+   * Get environment variables for the agent
+   */
+  getEnvironmentVariables(agentId: string): Promise<Record<string, string>>;
+
+  /**
+   * Update environment variables for the agent
+   */
+  updateEnvironmentVariables(
+    agentId: string,
+    envVars: Record<string, string>
+  ): Promise<void>;
 }

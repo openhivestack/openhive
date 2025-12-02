@@ -8,16 +8,23 @@ import {
   EmptyTitle,
   EmptyMedia,
 } from "@/components/ui/empty";
-import { LayoutGrid, Rows3, Search } from "lucide-react";
+import {
+  LayoutGrid,
+  Rows3,
+  Search,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { AgentTable } from "@/components/agent-table";
 import { ToggleGroupItem, ToggleGroup } from "@/components/ui/toggle-group";
-import { AgentDetail, api } from "@/lib/api-client";
+import { AgentDetail, PaginationMeta, api } from "@/lib/api-client";
 import { useEffect, useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AgentBlock } from "@/components/agent-block";
 import { Header } from "@/components/header";
+import { Button } from "@/components/ui/button";
 
 export default function AgentsPage() {
   const router = useRouter();
@@ -25,11 +32,13 @@ export default function AgentsPage() {
   const searchParams = useSearchParams();
 
   const [agents, setAgents] = useState<AgentDetail[]>([]);
+  const [pagination, setPagination] = useState<PaginationMeta | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
   const query = searchParams.get("q") || "";
   const layout = searchParams.get("layout") || "grid";
+  const page = parseInt(searchParams.get("page") || "1");
 
   useEffect(() => {
     const fetchAgents = async () => {
@@ -37,13 +46,14 @@ export default function AgentsPage() {
       setError(null);
 
       try {
-        let fetchedAgents;
+        let fetchedData;
         if (query) {
-          fetchedAgents = await api.agent.search(query);
+          fetchedData = await api.agent.search(query, page);
         } else {
-          fetchedAgents = await api.agent.list();
+          fetchedData = await api.agent.list(page);
         }
-        setAgents(fetchedAgents);
+        setAgents(fetchedData.agents);
+        setPagination(fetchedData.pagination);
       } catch (err) {
         setError(err as Error);
       } finally {
@@ -51,7 +61,7 @@ export default function AgentsPage() {
       }
     };
     fetchAgents();
-  }, [query]);
+  }, [query, page]);
 
   const handleSearch = (newQuery: string) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -60,6 +70,13 @@ export default function AgentsPage() {
     } else {
       params.delete("q");
     }
+    params.set("page", "1"); // Reset to page 1 on new search
+    router.push(`${pathname}?${params.toString()}`);
+  };
+
+  const handlePageChange = (newPage: number) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("page", newPage.toString());
     router.push(`${pathname}?${params.toString()}`);
   };
 
@@ -99,7 +116,7 @@ export default function AgentsPage() {
           </div>
         </div>
       </Header>
-      <div className="px-4 py-2">
+      <div className="px-4 py-2 flex-1 flex flex-col">
         {loading && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {[...Array(3)].map((_, i) => (
@@ -123,11 +140,35 @@ export default function AgentsPage() {
             ) : (
               <AgentTable agents={agents} />
             )}
+
+            <div className="flex items-center justify-end space-x-2 py-4 mt-auto">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handlePageChange(page - 1)}
+                disabled={page <= 1 || loading}
+              >
+                <ChevronLeft className="h-4 w-4 mr-1" />
+                Previous
+              </Button>
+              <div className="text-sm text-muted-foreground">
+                Page {pagination?.page || 1} of {pagination?.totalPages || 1}
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handlePageChange(page + 1)}
+                disabled={page >= (pagination?.totalPages || 1) || loading}
+              >
+                Next
+                <ChevronRight className="h-4 w-4 ml-1" />
+              </Button>
+            </div>
           </>
         )}
 
         {!loading && !error && agents.length === 0 && (
-          <div className="flex justify-center items-center w-full">
+          <div className="flex justify-center items-center w-full flex-1">
             <Empty className="border border-dashed">
               <EmptyHeader>
                 <EmptyMedia variant="icon">

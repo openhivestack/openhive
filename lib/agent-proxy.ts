@@ -143,6 +143,7 @@ export async function handleAgentRequest(
       method: req.method,
       headers,
       body: body,
+      signal: req.signal,
       duplex: "half",
     } as any);
 

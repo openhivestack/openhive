@@ -37,6 +37,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { DateTime } from "luxon";
 import { Terminal, Zap, ChevronLeft, ChevronRight } from "lucide-react";
 import useSWR from "swr";
@@ -64,6 +71,9 @@ export default function AgentOverviewPage() {
 
   const { agent: baseAgent, loading } = useAgent();
   const [page, setPage] = useState(1);
+  const [range, setRange] = useState<"24h" | "48h" | "7d" | "30d" | "60d">(
+    "24h"
+  );
   const [versionCount, setVersionCount] = useState(0);
 
   // Fetch Full Agent Card Details
@@ -78,8 +88,8 @@ export default function AgentOverviewPage() {
   useEffect(() => {
     const fetchVersionCount = async () => {
       try {
-        const versions = await api.agent.versions(agentName);
-        setVersionCount(versions.length);
+        const { pagination } = await api.agent.versions(agentName);
+        setVersionCount(pagination.total);
       } catch (error) {
         console.error("Failed to fetch version count:", error);
       }
@@ -93,17 +103,25 @@ export default function AgentOverviewPage() {
     isLoading: loadingMetrics,
     error: metricsError,
   } = useSWR(
-    agentName ? ["metrics", agentName] : null,
-    ([, name]: [string, string]) =>
-      api.agent.telemetry.metrics(name).then((m) => ({
+    agentName ? ["metrics", agentName, range] : null,
+    ([, name, r]: [string, string, "24h" | "48h" | "7d" | "30d" | "60d"]) =>
+      api.agent.telemetry.metrics(name, r).then((m) => ({
         uptimeDays: 0, // Not available in API yet
         successRate: m?.successRate ?? 0,
         avgLatency: m?.avgDurationMs ?? 0,
         totalTasks: m?.totalExecutions ?? 0,
-        chartData: (m?.timeSeries || []).map((t) => ({
-          name: DateTime.fromISO(t.timestamp).toFormat("HH:mm"),
-          tasks: t.value,
-        })),
+        chartData: (m?.timeSeries || []).map((t) => {
+          let format = "HH:mm";
+          if (r === "7d" || r === "30d" || r === "60d") {
+            format = "MMM dd";
+          } else if (r === "48h") {
+            format = "ccc HH:mm";
+          }
+          return {
+            name: DateTime.fromISO(t.timestamp).toFormat(format),
+            tasks: t.value,
+          };
+        }),
       })),
     {
       refreshInterval: 30000,
@@ -113,12 +131,13 @@ export default function AgentOverviewPage() {
 
   // Fetch Activities with SWR
   const {
-    data: tasksData,
+    data: tasksResponse,
     isLoading: loadingActivities,
     error: activitiesError,
   } = useSWR(
-    agentName ? ["tasks", agentName] : null,
-    ([, name]: [string, string]) => api.agent.telemetry.tasks(name, 5),
+    agentName ? ["tasks", agentName, page] : null,
+    ([, name, p]: [string, string, number]) =>
+      api.agent.telemetry.tasks(name, p, 5),
     {
       refreshInterval: 5000,
       shouldRetryOnError: false,
@@ -126,7 +145,7 @@ export default function AgentOverviewPage() {
   );
 
   const activities: Activity[] =
-    tasksData?.map((t) => ({
+    tasksResponse?.tasks?.map((t) => ({
       id: t.taskId,
       type: "Task",
       status: t.status,
@@ -135,7 +154,12 @@ export default function AgentOverviewPage() {
       agentVersion: t.agentVersion || "?",
     })) || [];
 
-  const pagination = { total: 0, page: 1, limit: 5, totalPages: 1 };
+  const pagination = tasksResponse?.pagination || {
+    total: 0,
+    page: 1,
+    limit: 5,
+    totalPages: 1,
+  };
 
   if (loading) {
     return (
@@ -182,7 +206,7 @@ export default function AgentOverviewPage() {
               <div className="text-sm font-bold text-red-500">-</div>
             ) : (
               <div className="text-sm font-bold">
-                {metrics?.successRate ?? 0}%
+                {(metrics?.successRate ?? 0).toFixed(2)}%
               </div>
             )}
             <p className="text-xs text-muted-foreground">Based on executions</p>
@@ -230,13 +254,30 @@ export default function AgentOverviewPage() {
         <div className="col-span-9">
           {/* Histogram Chart */}
           <Card className="border-none shadow-none">
-            <CardHeader className="gap-1">
-              <CardTitle className="text-sm">
-                Task Executions (Last 24 Hours)
-              </CardTitle>
-              <CardDescription className="text-xs">
-                Volume of tasks processed by this agent over time.
-              </CardDescription>
+            <CardHeader className="flex flex-row items-center justify-between gap-1">
+              <div>
+                <CardTitle className="text-sm">Task Executions</CardTitle>
+                <CardDescription className="text-xs">
+                  Volume of tasks processed by this agent over time.
+                </CardDescription>
+              </div>
+              <Select
+                value={range}
+                onValueChange={(v) =>
+                  setRange(v as "24h" | "48h" | "7d" | "30d" | "60d")
+                }
+              >
+                <SelectTrigger className="w-[140px] h-8 text-xs">
+                  <SelectValue placeholder="Select range" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="24h">Last 24 Hours</SelectItem>
+                  <SelectItem value="48h">Last 2 Days</SelectItem>
+                  <SelectItem value="7d">Last Week</SelectItem>
+                  <SelectItem value="30d">Last Month</SelectItem>
+                  <SelectItem value="60d">Last 2 Months</SelectItem>
+                </SelectContent>
+              </Select>
             </CardHeader>
             <CardContent>
               {loadingMetrics ? (
@@ -401,13 +442,15 @@ export default function AgentOverviewPage() {
               ) : (
                 activities.map((activity) => (
                   <TableRow key={activity.id}>
-                    <TableCell>
-                      {activity.status}
+                    <TableCell className="flex items-center gap-2">
                       {activity.status === "completed" ? (
                         <CircleCheck className="size-4 text-green-500" />
                       ) : (
                         <XCircle className="size-4 text-red-500" />
                       )}
+                      <span className="text-xs font-medium">
+                        {activity.status}
+                      </span>
                     </TableCell>
                     <TableCell className="font-medium text-xs">
                       {activity.type}

@@ -10,6 +10,7 @@ import {
   CloudWatchLogsClient,
   FilterLogEventsCommand,
   GetLogEventsCommand,
+  DescribeLogStreamsCommand,
 } from "@aws-sdk/client-cloudwatch-logs";
 import {
   ECSClient,
@@ -18,6 +19,7 @@ import {
   CreateServiceCommand,
   UpdateServiceCommand,
   DeleteServiceCommand,
+  DescribeTaskDefinitionCommand,
 } from "@aws-sdk/client-ecs";
 import {
   ServiceDiscoveryClient,
@@ -229,8 +231,18 @@ export class AwsCloudProvider implements CloudProvider {
           serviceRegistries,
         })
       );
+    } else if (existingService.status === "DRAINING") {
+      // If the service is draining, we cannot update it. We must wait or delete it.
+      // However, simply creating it again might fail if the name is taken.
+      // Since we can't easily "undrain" a service, and deleting takes time,
+      // the user might be stuck.
+      // Best bet is to attempt to create it if it's gone, or wait.
+      // But for this flow, we'll log a warning.
+      console.warn(`Service ${serviceName} is in DRAINING state.`);
     } else {
+      // Update existing ACTIVE service
       // Check if existing service has the correct serviceRegistries
+
       // ECS Service description includes serviceRegistries array.
       // If the existing service doesn't have our registryArn, we must recreate it.
       const currentRegistries = existingService.serviceRegistries || [];
@@ -320,6 +332,28 @@ export class AwsCloudProvider implements CloudProvider {
     }
   }
 
+  async startAgent(agentId: string): Promise<void> {
+    const serviceName = `service-${agentId}`;
+    await this.ecs.send(
+      new UpdateServiceCommand({
+        cluster: this.cluster,
+        service: serviceName,
+        desiredCount: 1,
+      })
+    );
+  }
+
+  async stopAgent(agentId: string): Promise<void> {
+    const serviceName = `service-${agentId}`;
+    await this.ecs.send(
+      new UpdateServiceCommand({
+        cluster: this.cluster,
+        service: serviceName,
+        desiredCount: 0,
+      })
+    );
+  }
+
   async getAgentStatus(
     agentId: string
   ): Promise<"BUILDING" | "RUNNING" | "STOPPED" | "FAILED" | "UNKNOWN"> {
@@ -333,13 +367,25 @@ export class AwsCloudProvider implements CloudProvider {
       );
 
       const service = res.services?.[0];
-      if (!service) return "UNKNOWN";
 
-      if (service.status === "ACTIVE" && (service.runningCount || 0) > 0)
-        return "RUNNING";
+      // If service doesn't exist, it's stopped (or never started)
+      if (!service || service.status === "INACTIVE") return "STOPPED";
+
+      // If service is draining, it is effectively stopped/stopping
       if (service.status === "DRAINING") return "STOPPED";
 
-      return "BUILDING";
+      // Service is ACTIVE. Check desired count and running count.
+      if (service.desiredCount === 0) {
+        return "STOPPED";
+      }
+
+      // Desired count > 0, but running count is 0 -> Building/Starting
+      if ((service.runningCount || 0) === 0) {
+        return "BUILDING";
+      }
+
+      // Desired count > 0 and running count > 0 -> Running
+      return "RUNNING";
     } catch (e) {
       console.error(e);
       return "UNKNOWN";
@@ -348,18 +394,68 @@ export class AwsCloudProvider implements CloudProvider {
 
   async getAgentLogs(agentId: string): Promise<LogEvent[]> {
     try {
-      const command = new FilterLogEventsCommand({
+      // 1. Try to find the latest active stream for this agent
+      // We cannot use logStreamNamePrefix with LastEventTime ordering, so we scan global latest streams.
+      let latestStreamName: string | undefined;
+      let nextToken: string | undefined;
+      const maxStreamsToScan = 100; // Check top 100 active streams
+      let scannedCount = 0;
+
+      do {
+        const describeCmd: DescribeLogStreamsCommand =
+          new DescribeLogStreamsCommand({
+            logGroupName: "/ecs/openhive-agents",
+            orderBy: "LastEventTime",
+            descending: true,
+            limit: 50,
+            nextToken,
+          });
+
+        const response = await this.logs.send(describeCmd);
+        const streams = response.logStreams || [];
+
+        // Find first stream matching our agent
+        const match = streams.find((s) =>
+          s.logStreamName?.startsWith(`${agentId}/`)
+        );
+        if (match) {
+          latestStreamName = match.logStreamName;
+          break;
+        }
+
+        scannedCount += streams.length;
+        nextToken = response.nextToken;
+      } while (nextToken && scannedCount < maxStreamsToScan);
+
+      if (latestStreamName) {
+        // 2a. Found a recent stream, get its tail
+        const getCmd = new GetLogEventsCommand({
+          logGroupName: "/ecs/openhive-agents",
+          logStreamName: latestStreamName,
+          limit: 100,
+          startFromHead: false,
+        });
+
+        const response = await this.logs.send(getCmd);
+        return (response.events || [])
+          .map((e) => ({
+            timestamp: e.timestamp || Date.now(),
+            message: e.message || "",
+          }))
+          .sort((a, b) => a.timestamp - b.timestamp);
+      }
+
+      // 2b. Fallback: If no recent stream found, use FilterLogEvents
+      // This handles cases where the agent hasn't run recently (is not in top 100 active streams)
+      const filterCmd = new FilterLogEventsCommand({
         logGroupName: "/ecs/openhive-agents",
         logStreamNamePrefix: agentId,
-        limit: 100, // Fetch last 100 lines
-        startTime: Date.now() - 24 * 60 * 60 * 1000, // Last 24 hours
+        limit: 100,
+        startTime: Date.now() - 24 * 60 * 60 * 1000,
       });
 
-      const response = await this.logs.send(command);
-
-      if (!response.events) return [];
-
-      return response.events
+      const response = await this.logs.send(filterCmd);
+      return (response.events || [])
         .map((e) => ({
           timestamp: e.timestamp || Date.now(),
           message: e.message || "",
@@ -443,5 +539,141 @@ export class AwsCloudProvider implements CloudProvider {
       errorCount: 0,
       timeSeries: [],
     };
+  }
+
+  async getEnvironmentVariables(
+    agentId: string
+  ): Promise<Record<string, string>> {
+    try {
+      const serviceName = `service-${agentId}`;
+
+      // 1. Describe Service to get Task Definition ARN
+      const serviceRes = await this.ecs.send(
+        new DescribeServicesCommand({
+          cluster: this.cluster,
+          services: [serviceName],
+        })
+      );
+
+      const service = serviceRes.services?.[0];
+      if (!service || !service.taskDefinition) {
+        return {};
+      }
+
+      // 2. Describe Task Definition
+      const taskDefRes = await this.ecs.send(
+        new DescribeTaskDefinitionCommand({
+          taskDefinition: service.taskDefinition,
+        })
+      );
+
+      const taskDef = taskDefRes.taskDefinition;
+      if (
+        !taskDef ||
+        !taskDef.containerDefinitions ||
+        taskDef.containerDefinitions.length === 0
+      ) {
+        return {};
+      }
+
+      const container = taskDef.containerDefinitions[0];
+      const envVars: Record<string, string> = {};
+
+      container.environment?.forEach((env) => {
+        if (env.name && env.value) {
+          envVars[env.name] = env.value;
+        }
+      });
+
+      return envVars;
+    } catch (error) {
+      console.error("Error fetching environment variables:", error);
+      return {};
+    }
+  }
+
+  async updateEnvironmentVariables(
+    agentId: string,
+    envVars: Record<string, string>
+  ): Promise<void> {
+    const serviceName = `service-${agentId}`;
+
+    // 1. Get current Task Definition
+    const serviceRes = await this.ecs.send(
+      new DescribeServicesCommand({
+        cluster: this.cluster,
+        services: [serviceName],
+      })
+    );
+
+    const service = serviceRes.services?.[0];
+    if (!service || !service.taskDefinition) {
+      throw new Error(
+        `Service ${serviceName} not found or has no task definition`
+      );
+    }
+
+    const taskDefRes = await this.ecs.send(
+      new DescribeTaskDefinitionCommand({
+        taskDefinition: service.taskDefinition,
+      })
+    );
+
+    const oldTaskDef = taskDefRes.taskDefinition;
+    if (!oldTaskDef) {
+      throw new Error("Task definition not found");
+    }
+
+    // 2. Create new Task Definition
+    const containerDef = oldTaskDef.containerDefinitions?.[0];
+    if (!containerDef) {
+      throw new Error("Container definition not found");
+    }
+
+    // Update environment variables
+    const newEnvironment = Object.entries(envVars).map(([name, value]) => ({
+      name,
+      value,
+    }));
+
+    // Ensure PORT is set
+    if (!envVars["PORT"]) {
+      newEnvironment.push({ name: "PORT", value: "4000" });
+    }
+
+    const newTaskDef = await this.ecs.send(
+      new RegisterTaskDefinitionCommand({
+        family: oldTaskDef.family,
+        taskRoleArn: oldTaskDef.taskRoleArn,
+        executionRoleArn: oldTaskDef.executionRoleArn,
+        networkMode: oldTaskDef.networkMode,
+        containerDefinitions: [
+          {
+            ...containerDef,
+            environment: newEnvironment,
+          },
+        ],
+        volumes: oldTaskDef.volumes,
+        placementConstraints: oldTaskDef.placementConstraints,
+        requiresCompatibilities: oldTaskDef.requiresCompatibilities,
+        cpu: oldTaskDef.cpu,
+        memory: oldTaskDef.memory,
+      })
+    );
+
+    const newTaskDefArn = newTaskDef.taskDefinition?.taskDefinitionArn;
+    if (!newTaskDefArn) {
+      throw new Error("Failed to register new task definition");
+    }
+
+    // 3. Update Service
+    await this.ecs.send(
+      new UpdateServiceCommand({
+        cluster: this.cluster,
+        service: serviceName,
+        taskDefinition: newTaskDefArn,
+        forceNewDeployment: true, // Force a new deployment to pick up changes immediately
+      })
+    );
   }
 }
