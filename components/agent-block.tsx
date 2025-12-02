@@ -7,6 +7,7 @@ import Image from "next/image";
 import PythonIcon from "@/public/python.png";
 import NodeIcon from "@/public/node.png";
 import millify from "millify";
+import { AgentDetail } from "@/lib/api-client";
 
 const runtimeIcons = {
   python: PythonIcon,
@@ -14,7 +15,7 @@ const runtimeIcons = {
 };
 
 interface AgentBlockProps {
-  agent: any;
+  agent: Partial<AgentDetail>;
   compact?: boolean;
   className?: string;
 }
@@ -50,7 +51,7 @@ export const AgentBlock = ({
       <div
         className={cn(
           "absolute left-0 top-0 h-full w-1",
-          getStatusColor(agent.status)
+          getStatusColor(agent.status || "UNKNOWN")
         )}
       />
 
@@ -97,7 +98,7 @@ export const AgentBlock = ({
               </h3>
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
                 <span className="flex items-center gap-1">
-                  v{agent.version}
+                  v{agent.latestVersion || agent.version}
                 </span>
                 {!compact && (
                   <>
@@ -113,7 +114,7 @@ export const AgentBlock = ({
 
           {/* Status Icon (Top Right) */}
           <div className="flex shrink-0 items-center">
-            {agent.private ? (
+            {!agent.isPublic ? (
               <Lock className="size-3.5 text-muted-foreground/70" />
             ) : (
               <LockOpen className="size-3.5 text-muted-foreground/70" />
@@ -140,11 +141,11 @@ export const AgentBlock = ({
           <div className="flex items-center gap-3 text-xs text-muted-foreground">
             <div
               className="flex items-center gap-1.5"
-              title={`${agent.downloads || 0} downloads`}
+              title={`${agent.installCount || agent.downloads || 0} downloads`}
             >
               <Download className="size-3" />
               <span className="font-medium">
-                {millify(agent.downloads || 0)}
+                {millify(agent.installCount || agent.downloads || 0)}
               </span>
             </div>
           </div>

@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { Agent } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -30,20 +29,20 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
+import { api, AgentDetail } from "@/lib/api-client";
+
 interface AgentCardProps {
-  info: Agent;
+  info: Partial<AgentDetail>;
 }
 
 export function AgentCard({ info }: AgentCardProps) {
-  const [agent, setAgent] = useState<Agent>(info);
+  const [agent, setAgent] = useState<Partial<AgentDetail>>(info);
 
   const fetchLiveCard = async () => {
+    if (!info.name) return;
     try {
-      const res = await fetch(`/api/agent/${info.name}/card`);
-      if (res.ok) {
-        const data = await res.json();
-        setAgent(data as Agent);
-      }
+      const data = await api.agent.card(info.name);
+      setAgent(data);
     } catch (error) {
       console.error("Failed to fetch live card:", error);
     }
@@ -75,9 +74,9 @@ export function AgentCard({ info }: AgentCardProps) {
           <div className="flex-1 space-y-1">
             <h4 className="font-semibold leading-none">{agent.name}</h4>
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <span>v{agent.version}</span>
+              <span>v{agent.latestVersion || agent.version}</span>
               <span>•</span>
-              <span>A2A v{agent.protocolVersion}</span>
+              <span>A2A v{agent.protocolVersion || "0.0.0"}</span>
             </div>
           </div>
         </div>
@@ -88,13 +87,16 @@ export function AgentCard({ info }: AgentCardProps) {
             </Label>
             <div className="flex items-center gap-2 min-w-0 w-full">
               <code className="flex-1 rounded bg-muted px-2 py-1 text-xs font-mono truncate min-w-0">
-                {agent.url}
+                {agent.url || "N/A"}
               </code>
               <Button
                 variant="ghost"
                 size="icon"
                 className="size-6 shrink-0"
-                onClick={() => navigator.clipboard.writeText(agent.url)}
+                onClick={() =>
+                  agent.url && navigator.clipboard.writeText(agent.url)
+                }
+                disabled={!agent.url}
               >
                 <Copy className="size-3" />
               </Button>
@@ -127,7 +129,7 @@ export function AgentCard({ info }: AgentCardProps) {
                 <Cpu className="size-3" /> Skills
               </Label>
               <div className="flex flex-wrap gap-1">
-                {agent.skills.length > 0 ? (
+                {agent.skills && agent.skills.length > 0 ? (
                   <>
                     {agent.skills.slice(0, 3).map((skill: any) => (
                       <Badge
@@ -208,9 +210,12 @@ export function AgentCard({ info }: AgentCardProps) {
             size="sm"
             className="h-7 text-xs gap-1.5"
             asChild
+            disabled={!agent.url}
           >
             <a
-              href={`${agent.url}/.well-known/agent-card.json`}
+              href={
+                agent.url ? `${agent.url}/.well-known/agent-card.json` : "#"
+              }
               target="_blank"
               rel="noopener noreferrer"
             >

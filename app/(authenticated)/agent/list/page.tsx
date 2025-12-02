@@ -13,9 +13,8 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { AgentTable } from "@/components/agent-table";
 import { ToggleGroupItem, ToggleGroup } from "@/components/ui/toggle-group";
-import { Agent } from "@/lib/types";
+import { AgentDetail, api } from "@/lib/api-client";
 import { useEffect, useState } from "react";
-import { openhive } from "@/lib/openhive";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AgentBlock } from "@/components/agent-block";
 import { Header } from "@/components/header";
@@ -25,7 +24,7 @@ export default function AgentsPage() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  const [agents, setAgents] = useState<Agent[]>([]);
+  const [agents, setAgents] = useState<AgentDetail[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
@@ -40,11 +39,10 @@ export default function AgentsPage() {
       try {
         let fetchedAgents;
         if (query) {
-          fetchedAgents = await openhive.search(query);
+          fetchedAgents = await api.agent.search(query);
         } else {
-          fetchedAgents = await openhive.list();
+          fetchedAgents = await api.agent.list();
         }
-        // @ts-expect-error - SDK returns AgentCard[], but we use Agent type
         setAgents(fetchedAgents);
       } catch (err) {
         setError(err as Error);

@@ -190,6 +190,7 @@ model Agent {
   organization   Organization? @relation(fields: [organizationId], references: [id])
 
   versions      AgentVersion[]
+  executions    AgentExecution[]
 
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
@@ -217,6 +218,29 @@ model AgentVersion {
 
   @@unique([agentName, version])
   @@map("agentVersion")
+}
+
+model AgentExecution {
+  id          String    @id @default(cuid())
+  agentName   String
+  agent       Agent     @relation(fields: [agentName], references: [name], onDelete: Cascade)
+  
+  taskId      String
+  agentVersion String?
+  status      String    // "completed", "failed", "running"
+  
+  startedAt   DateTime  @default(now())
+  completedAt DateTime?
+  durationMs  Int?
+  
+  error       String?
+  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([agentName, startedAt])
+  @@index([taskId])
+  @@map("agentExecution")
 }
 
 model Subscription {
