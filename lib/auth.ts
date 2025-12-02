@@ -14,7 +14,12 @@ import {
 } from "better-auth/plugins";
 import { apiKey } from "better-auth/plugins";
 
-export type { UserSession } from "./types";
+// Session type from better-auth
+export type UserSession = {
+  user: { id: string };
+  organization?: { id: string };
+  activeOrganizationId?: string;
+};
 
 // Conditionally configure social providers
 const socialProviders: any = {};

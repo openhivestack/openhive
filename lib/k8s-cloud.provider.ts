@@ -220,8 +220,8 @@ export class K8sCloudProvider implements CloudProvider {
       const safeAgentId = agentId.toLowerCase().replace(/[^a-z0-9-]/g, "-");
       const deploymentName = `agent-${safeAgentId}`;
 
-      // @ts-ignore - handling version mismatch or flexible api usage
       const res = await this.k8sApi.readNamespacedDeployment(
+        // @ts-expect-error - handling version mismatch or flexible api usage
         deploymentName,
         this.namespace
       );
@@ -256,8 +256,8 @@ export class K8sCloudProvider implements CloudProvider {
     const deploymentName = `agent-${safeAgentId}`;
 
     try {
-      // @ts-ignore
       const res = await this.k8sApi.readNamespacedDeployment(
+        // @ts-expect-error - handling version mismatch or flexible api usage
         deploymentName,
         this.namespace
       );
@@ -280,7 +280,6 @@ export class K8sCloudProvider implements CloudProvider {
 
       deployment.spec.template.spec.containers[0].env = newEnv;
 
-      // @ts-ignore
       await (this.k8sApi as any).replaceNamespacedDeployment(
         deploymentName,
         this.namespace,

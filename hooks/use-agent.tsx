@@ -8,13 +8,13 @@ import {
   ReactNode,
   useCallback,
 } from "react";
-import { Agent } from "@prisma/client";
+import { AgentDetail } from "@/lib/api-client";
 import { api } from "@/lib/api-client";
 import useSWR, { KeyedMutator } from "swr";
 import { toast } from "sonner";
 
 interface AgentContextType {
-  agent: Agent | null;
+  agent: AgentDetail | null;
   loading: boolean;
   error: Error | null;
   refetch: () => Promise<void>;
@@ -34,7 +34,7 @@ interface AgentProviderProps {
 }
 
 export function AgentProvider({ children, agentName }: AgentProviderProps) {
-  const [agent, setAgent] = useState<Agent | null>(null);
+  const [agent, setAgent] = useState<AgentDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const [togglingRuntime, setTogglingRuntime] = useState(false);

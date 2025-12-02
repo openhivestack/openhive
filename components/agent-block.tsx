@@ -75,7 +75,7 @@ export const AgentBlock = ({
               {RuntimeIcon ? (
                 <Image
                   src={RuntimeIcon}
-                  alt={agent.runtime}
+                  alt={agent.runtime || "unknown"}
                   width={compact ? 16 : 20}
                   height={compact ? 16 : 20}
                   className="opacity-90"

@@ -2,14 +2,25 @@
 
 import { ReactNode } from "react";
 import { useParams, usePathname } from "next/navigation";
-import { Bolt, Braces, Key } from "lucide-react";
+import { Bolt, Braces, LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
-import { Tab } from "@/lib/types";
 
 interface Props {
   children: ReactNode;
+}
+
+interface Tab {
+  category: string;
+  description: string;
+  items: {
+    label: string;
+    icon: LucideIcon;
+    value: string;
+    pathname: string;
+  }[];
+  hidden?: boolean;
 }
 
 export default function SettingsLayout({ children }: Props) {
