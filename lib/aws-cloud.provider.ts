@@ -7,6 +7,7 @@ import {
   RegisterTaskDefinitionCommand,
   CreateServiceCommand,
   UpdateServiceCommand,
+  DeleteServiceCommand,
 } from "@aws-sdk/client-ecs";
 import {
   ServiceDiscoveryClient,
@@ -155,10 +156,13 @@ export class AwsCloudProvider implements CloudProvider {
                 protocol: "tcp",
               },
             ],
-            environment: Object.entries(envVars).map(([name, value]) => ({
-              name,
-              value,
-            })),
+            environment: [
+              ...Object.entries(envVars).map(([name, value]) => ({
+                name,
+                value,
+              })),
+              { name: "PORT", value: "4000" }, // Ensure agent listens on 4000
+            ],
             logConfiguration: {
               logDriver: "awslogs",
               options: {
@@ -214,17 +218,93 @@ export class AwsCloudProvider implements CloudProvider {
         })
       );
     } else {
-      // Update existing service
-      await this.ecs.send(
-        new UpdateServiceCommand({
-          cluster: this.cluster,
-          service: serviceName,
-          taskDefinition: taskDefArn,
-          forceNewDeployment: true,
-          // serviceRegistries cannot be updated in UpdateService, only created.
-          // If it was missing, we'd need to destroy/create, but we assume it stays consistent.
-        })
+      // Check if existing service has the correct serviceRegistries
+      // ECS Service description includes serviceRegistries array.
+      // If the existing service doesn't have our registryArn, we must recreate it.
+      const currentRegistries = existingService.serviceRegistries || [];
+      const hasRegistry = currentRegistries.some(
+        (r) => r.registryArn === registryArn
       );
+
+      if (registryArn && !hasRegistry) {
+        console.log(
+          `Service ${serviceName} exists but is missing Service Registry. Recreating...`
+        );
+        // 1. Update desired count to 0 (optional, but good practice before delete)
+        await this.ecs.send(
+          new UpdateServiceCommand({
+            cluster: this.cluster,
+            service: serviceName,
+            desiredCount: 0,
+          })
+        );
+
+        // 2. Delete Service
+        await this.ecs.send(
+          new DeleteServiceCommand({
+            cluster: this.cluster,
+            service: serviceName,
+          })
+        );
+
+        // 3. Wait for service to drain
+        // We need to wait until the service is fully deleted or at least inactive
+        console.log(`Waiting for service ${serviceName} to drain...`);
+        let isDrained = false;
+        for (let i = 0; i < 30; i++) {
+          // Wait up to 60s
+          await new Promise((resolve) => setTimeout(resolve, 2000));
+          const check = await this.ecs.send(
+            new DescribeServicesCommand({
+              cluster: this.cluster,
+              services: [serviceName],
+            })
+          );
+          const s = check.services?.[0];
+          if (!s || s.status === "INACTIVE") {
+            isDrained = true;
+            break;
+          }
+        }
+
+        if (!isDrained) {
+          // If it's still draining, we might fail to create.
+          // However, ECS usually allows recreating a service with the same name once the old one is INACTIVE or Draining (if force new deployment?)
+          // Actually, you can't have two services with same name.
+          // If it's still draining, we probably can't create.
+          console.warn(
+            `Service ${serviceName} is still draining. Attempting creation anyway...`
+          );
+        }
+
+        await this.ecs.send(
+          new CreateServiceCommand({
+            cluster: this.cluster,
+            serviceName: serviceName,
+            taskDefinition: taskDefArn,
+            desiredCount: 1,
+            launchType: "FARGATE",
+            networkConfiguration: {
+              awsvpcConfiguration: {
+                subnets: this.subnets,
+                securityGroups: this.securityGroups,
+                assignPublicIp: "ENABLED",
+              },
+            },
+            serviceRegistries,
+          })
+        );
+      } else {
+        // Update existing service (Standard update)
+        await this.ecs.send(
+          new UpdateServiceCommand({
+            cluster: this.cluster,
+            service: serviceName,
+            taskDefinition: taskDefArn,
+            forceNewDeployment: true,
+          })
+        );
+      }
     }
   }
 
