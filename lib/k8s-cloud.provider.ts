@@ -5,28 +5,60 @@ import {
   LogEvent,
 } from "./cloud-provider.interface";
 import * as k8s from "@kubernetes/client-node";
+import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 
 export class K8sCloudProvider implements CloudProvider {
   private k8sApi: k8s.AppsV1Api;
   private coreApi: k8s.CoreV1Api;
+  private batchApi: k8s.BatchV1Api;
   private namespace: string;
+  private minioClient: S3Client;
+  private bucket: string;
 
   constructor() {
     const kc = new k8s.KubeConfig();
     kc.loadFromDefault();
     this.k8sApi = kc.makeApiClient(k8s.AppsV1Api);
     this.coreApi = kc.makeApiClient(k8s.CoreV1Api);
+    this.batchApi = kc.makeApiClient(k8s.BatchV1Api);
     this.namespace = process.env.K8S_NAMESPACE || "openhive";
+    this.bucket = process.env.K8S_STORAGE_BUCKET || "openhive-agents";
+
+    this.minioClient = new S3Client({
+      region: "us-east-1", // MinIO SDK requires a region, but we use local endpoint
+      endpoint:
+        process.env.K8S_MINIO_ENDPOINT || "http://minio.openhive.svc:9000",
+      credentials: {
+        accessKeyId: process.env.K8S_MINIO_ACCESS_KEY || "minioadmin",
+        secretAccessKey: process.env.K8S_MINIO_SECRET_KEY || "minioadmin",
+      },
+      forcePathStyle: true,
+    });
   }
 
   async uploadSource(
     agentId: string,
     version: string,
-    file: Buffer // eslint-disable-line @typescript-eslint/no-unused-vars
+    file: Buffer
   ): Promise<string> {
-    // In K8s, we might push to an internal MinIO or Registry
-    // For now, returning a mock URL
-    return `minio://agents/${agentId}/${version}/source.tar.gz`;
+    const key = `agents/${agentId}/${version}/source.tar.gz`;
+
+    try {
+      await this.minioClient.send(
+        new PutObjectCommand({
+          Bucket: this.bucket,
+          Key: key,
+          Body: file,
+        })
+      );
+      console.log(`[K8s] Uploaded source to MinIO: ${this.bucket}/${key}`);
+    } catch (e) {
+      console.error(`[K8s] Failed to upload source to MinIO`, e);
+      throw e;
+    }
+
+    // Return the s3:// URI which Kaniko understands natively
+    return `s3://${this.bucket}/${key}`;
   }
 
   async deployAgent(
@@ -35,11 +67,24 @@ export class K8sCloudProvider implements CloudProvider {
     sourceUrl: string,
     envVars: Record<string, string>
   ): Promise<void> {
+    // Determine agent port from env vars or default to 4000
+    const agentPort = envVars.PORT ? parseInt(envVars.PORT, 10) : 4000;
+
     // For this implementation, we'll assume a Kubernetes Job handles the build & deploy
     const jobName = `build-${agentId}-${version.replace(/\./g, "-")}`;
 
     // Clean agent ID for K8s resource naming (lowercase, alphanumeric, hyphen)
     const safeAgentId = agentId.toLowerCase().replace(/[^a-z0-9-]/g, "-");
+
+    // Determine the internal S3 endpoint for Kaniko running inside the cluster
+    const internalMinioEndpoint = "http://minio.openhive.svc:9000";
+
+    // Kaniko (inside cluster) pushes to the Service DNS
+    const registryPushHost = "openhive-registry:5000";
+
+    // Kubelet (on node) pulls from localhost NodePort (Minikube standard)
+    // This assumes the registry service is NodePort 30500 as defined in values.yaml
+    const registryPullHost = "localhost:30500";
 
     const job = {
       apiVersion: "batch/v1",
@@ -58,13 +103,32 @@ export class K8sCloudProvider implements CloudProvider {
                 image: "gcr.io/kaniko-project/executor:latest",
                 args: [
                   `--dockerfile=Dockerfile`,
-                  `--context=${sourceUrl}`, // Kaniko supports S3/GCS/Azure directly, or we'd use an init container to fetch
-                  `--destination=registry.local/${safeAgentId}:${version}`, // Push to internal registry
+                  `--context=${sourceUrl}`,
+                  `--destination=${registryPushHost}/${safeAgentId}:${version}`,
+                  `--insecure`,
+                  `--skip-tls-verify`,
+                  `--skip-tls-verify-pull`,
                 ],
                 env: [
                   // Inject build args
                   { name: "AGENT_ID", value: agentId },
                   { name: "VERSION", value: version },
+
+                  // MinIO / S3 Credentials for Kaniko to fetch context
+                  {
+                    name: "AWS_ACCESS_KEY_ID",
+                    value: process.env.K8S_MINIO_ACCESS_KEY || "minioadmin",
+                  },
+                  {
+                    name: "AWS_SECRET_ACCESS_KEY",
+                    value: process.env.K8S_MINIO_SECRET_KEY || "minioadmin",
+                  },
+                  { name: "AWS_REGION", value: "us-east-1" },
+                  {
+                    name: "S3_ENDPOINT",
+                    value: internalMinioEndpoint,
+                  },
+                  { name: "S3_FORCE_PATH_STYLE", value: "true" },
                 ],
               },
             ],
@@ -76,10 +140,16 @@ export class K8sCloudProvider implements CloudProvider {
 
     // Create Build Job
     try {
-      console.log(`[K8s] Triggered build job: ${jobName}`, job);
-      // await this.k8sApi.createNamespacedJob(this.namespace, job);
+      console.log(`[K8s] Triggered build job: ${jobName}`);
+      await this.batchApi.createNamespacedJob({
+        namespace: this.namespace,
+        body: job,
+      });
     } catch (e) {
-      console.error("[K8s] Failed to trigger build job", e);
+      console.error(
+        "[K8s] Failed to trigger build job (it might already exist)",
+        e
+      );
     }
 
     const deploymentName = `agent-${safeAgentId}`;
@@ -96,12 +166,17 @@ export class K8sCloudProvider implements CloudProvider {
             containers: [
               {
                 name: "agent",
-                image: `registry.local/${safeAgentId}:${version}`,
-                ports: [{ containerPort: 4000 }],
-                env: Object.entries(envVars).map(([k, v]) => ({
-                  name: k,
-                  value: v,
-                })),
+                image: `${registryPullHost}/${safeAgentId}:${version}`,
+                ports: [{ containerPort: agentPort }],
+                env: [
+                  { name: "PORT", value: String(agentPort) },
+                  ...Object.entries(envVars)
+                    .filter(([k]) => k !== "PORT")
+                    .map(([k, v]) => ({
+                      name: k,
+                      value: v,
+                    })),
+                ],
               },
             ],
           },
@@ -111,13 +186,30 @@ export class K8sCloudProvider implements CloudProvider {
 
     try {
       // Check if exists
-      // await this.k8sApi.readNamespacedDeployment(deploymentName, this.namespace);
-      // await this.k8sApi.replaceNamespacedDeployment(deploymentName, this.namespace, deployment);
-      console.log(`[K8s] Updated deployment: ${deploymentName}`, deployment);
+      await this.k8sApi.readNamespacedDeployment({
+        name: deploymentName,
+        namespace: this.namespace,
+      });
+      await this.k8sApi.replaceNamespacedDeployment({
+        name: deploymentName,
+        namespace: this.namespace,
+        body: deployment,
+      });
+      console.log(`[K8s] Updated deployment: ${deploymentName}`);
     } catch (e) {
       // Create if not exists
-      // await this.k8sApi.createNamespacedDeployment(this.namespace, deployment);
-      console.log(`[K8s] Created deployment: ${deploymentName}`, e);
+      try {
+        await this.k8sApi.createNamespacedDeployment({
+          namespace: this.namespace,
+          body: deployment,
+        });
+        console.log(`[K8s] Created deployment: ${deploymentName}`);
+      } catch (createErr) {
+        console.error(
+          `[K8s] Failed to create deployment ${deploymentName}`,
+          createErr
+        );
+      }
     }
 
     // Create Service to expose the agent internally
@@ -128,23 +220,43 @@ export class K8sCloudProvider implements CloudProvider {
       metadata: { name: serviceName, namespace: this.namespace },
       spec: {
         selector: { app: deploymentName },
-        ports: [{ port: 80, targetPort: 4000 }],
+        ports: [{ port: 80, targetPort: agentPort }],
         type: "ClusterIP",
       },
     };
 
     try {
       // Check if exists
-      // await this.coreApi.readNamespacedService(serviceName, this.namespace);
-      // console.log(`[K8s] Service exists: ${serviceName}`);
+      const existingService = await this.coreApi.readNamespacedService({
+        name: serviceName,
+        namespace: this.namespace,
+      });
 
-      // If we wanted to update, we'd use replaceNamespacedService, but Service spec rarely changes for agents
-      console.log(`[K8s] Ensuring Service: ${serviceName}`);
+      // Update if targetPort changed
+      if (existingService.spec?.ports?.[0]?.targetPort !== agentPort) {
+        console.log(
+          `[K8s] Updating Service ${serviceName} port to ${agentPort}`
+        );
+        // Preserve ClusterIP and other fields by using the existing service object
+        // but updating the port spec.
+        if (existingService.spec && existingService.spec.ports) {
+          existingService.spec.ports[0].targetPort = agentPort;
+          await this.coreApi.replaceNamespacedService({
+            name: serviceName,
+            namespace: this.namespace,
+            body: existingService,
+          });
+        }
+      } else {
+        console.log(`[K8s] Service exists and matches port: ${serviceName}`);
+      }
     } catch (e) {
-      // eslint-disable-line @typescript-eslint/no-unused-vars
       try {
         // Create
-        // await this.coreApi.createNamespacedService(this.namespace, service);
+        await this.coreApi.createNamespacedService({
+          namespace: this.namespace,
+          body: service,
+        });
         console.log(`[K8s] Created Service: ${serviceName}`, service);
       } catch (createError) {
         console.error(
@@ -159,25 +271,82 @@ export class K8sCloudProvider implements CloudProvider {
     const safeAgentId = agentId.toLowerCase().replace(/[^a-z0-9-]/g, "-");
     const deploymentName = `agent-${safeAgentId}`;
     console.log(`[K8s] Starting agent (scaling to 1): ${deploymentName}`);
-    // await this.k8sApi.patchNamespacedDeploymentScale(deploymentName, this.namespace, { spec: { replicas: 1 } });
+    try {
+      const deployment = await this.k8sApi.readNamespacedDeployment({
+        name: deploymentName,
+        namespace: this.namespace,
+      });
+
+      if (deployment.spec) {
+        deployment.spec.replicas = 1;
+        await this.k8sApi.replaceNamespacedDeployment({
+          name: deploymentName,
+          namespace: this.namespace,
+          body: deployment,
+        });
+      }
+    } catch (e) {
+      console.error(`[K8s] Failed to start agent ${deploymentName}`, e);
+    }
   }
 
   async stopAgent(agentId: string): Promise<void> {
     const safeAgentId = agentId.toLowerCase().replace(/[^a-z0-9-]/g, "-");
     const deploymentName = `agent-${safeAgentId}`;
     console.log(`[K8s] Stopping agent (scaling to 0): ${deploymentName}`);
-    // await this.k8sApi.patchNamespacedDeploymentScale(deploymentName, this.namespace, { spec: { replicas: 0 } });
+    try {
+      const deployment = await this.k8sApi.readNamespacedDeployment({
+        name: deploymentName,
+        namespace: this.namespace,
+      });
+
+      if (deployment.spec) {
+        deployment.spec.replicas = 0;
+        await this.k8sApi.replaceNamespacedDeployment({
+          name: deploymentName,
+          namespace: this.namespace,
+          body: deployment,
+        });
+      }
+    } catch (e) {
+      console.error(`[K8s] Failed to stop agent ${deploymentName}`, e);
+    }
   }
 
   async getAgentStatus(
-    agentId: string // eslint-disable-line @typescript-eslint/no-unused-vars
+    agentId: string
   ): Promise<"BUILDING" | "RUNNING" | "STOPPED" | "FAILED" | "UNKNOWN"> {
-    return "RUNNING"; // Mock
+    const safeAgentId = agentId.toLowerCase().replace(/[^a-z0-9-]/g, "-");
+    const deploymentName = `agent-${safeAgentId}`;
+
+    try {
+      const res = await this.k8sApi.readNamespacedDeployment({
+        name: deploymentName,
+        namespace: this.namespace,
+      });
+      const deployment = res;
+
+      if (!deployment.status) return "UNKNOWN";
+      if (
+        deployment.status.readyReplicas &&
+        deployment.status.readyReplicas > 0
+      )
+        return "RUNNING";
+      if (deployment.spec?.replicas === 0) return "STOPPED";
+
+      return "BUILDING"; // Assume building/starting if exists but not ready
+    } catch (e) {
+      return "UNKNOWN";
+    }
   }
 
   async getAgentLogs(agentId: string): Promise<LogEvent[]> {
-    // eslint-disable-line @typescript-eslint/no-unused-vars
-    return [{ timestamp: Date.now(), message: "K8s logs not implemented" }];
+    return [
+      {
+        timestamp: Date.now(),
+        message: `K8s logs not implemented for ${agentId}`,
+      },
+    ];
   }
 
   async getAgentUrl(agentId: string): Promise<string | null> {
@@ -197,11 +366,13 @@ export class K8sCloudProvider implements CloudProvider {
     return `http://${serviceName}.${this.namespace}.svc.cluster.local`;
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   async getAgentTasks(agentId: string, limit = 10): Promise<AgentTask[]> {
     // Mock implementation for K8s
     return [];
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   async getAgentMetrics(agentId: string, range: string): Promise<AgentMetrics> {
     // Mock implementation for K8s
     return {
@@ -220,14 +391,13 @@ export class K8sCloudProvider implements CloudProvider {
       const safeAgentId = agentId.toLowerCase().replace(/[^a-z0-9-]/g, "-");
       const deploymentName = `agent-${safeAgentId}`;
 
-      const res = await this.k8sApi.readNamespacedDeployment(
-        // @ts-expect-error - handling version mismatch or flexible api usage
-        deploymentName,
-        this.namespace
-      );
+      const res = await this.k8sApi.readNamespacedDeployment({
+        name: deploymentName,
+        namespace: this.namespace,
+      });
 
-      // Check if res has body (old style) or is body (new style)
-      const deployment = (res as any).body || res;
+      // In new client version, usually 'res' is the actual object if Promise<V1Deployment>
+      const deployment = res;
       const container = (deployment as any).spec?.template?.spec
         ?.containers?.[0];
 
@@ -256,12 +426,10 @@ export class K8sCloudProvider implements CloudProvider {
     const deploymentName = `agent-${safeAgentId}`;
 
     try {
-      const res = await this.k8sApi.readNamespacedDeployment(
-        // @ts-expect-error - handling version mismatch or flexible api usage
-        deploymentName,
-        this.namespace
-      );
-      const deployment = (res as any).body || res;
+      const deployment = await this.k8sApi.readNamespacedDeployment({
+        name: deploymentName,
+        namespace: this.namespace,
+      });
 
       if (
         !deployment.spec ||
@@ -273,18 +441,23 @@ export class K8sCloudProvider implements CloudProvider {
         throw new Error("Deployment spec invalid");
       }
 
-      const newEnv = Object.entries(envVars).map(([name, value]) => ({
-        name,
-        value,
-      }));
+      const newEnv = [
+        { name: "PORT", value: "4000" },
+        ...Object.entries(envVars)
+          .filter(([k]) => k !== "PORT")
+          .map(([name, value]) => ({
+            name,
+            value,
+          })),
+      ];
 
       deployment.spec.template.spec.containers[0].env = newEnv;
 
-      await (this.k8sApi as any).replaceNamespacedDeployment(
-        deploymentName,
-        this.namespace,
-        deployment
-      );
+      await this.k8sApi.replaceNamespacedDeployment({
+        name: deploymentName,
+        namespace: this.namespace,
+        body: deployment,
+      });
       console.log(`[K8s] Updated env vars for ${deploymentName}`);
     } catch (error) {
       console.error(`[K8s] Error updating env vars for ${agentId}:`, error);
