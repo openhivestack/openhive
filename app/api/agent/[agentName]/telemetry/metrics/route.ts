@@ -37,6 +37,10 @@ export async function GET(
       startTime = now.minus({ days: 7 });
     } else if (range === "30d") {
       startTime = now.minus({ days: 30 });
+    } else if (range === "60d") {
+      startTime = now.minus({ days: 60 });
+    } else if (range === "48h") {
+      startTime = now.minus({ hours: 48 });
     } else if (range === "1h") {
       startTime = now.minus({ hours: 1 });
     }
@@ -90,28 +94,38 @@ export async function GET(
       orderBy: { startedAt: "asc" },
     });
 
-    // Bucket Size
-    // We will use a simplified bucketing strategy for now.
-    // let bucketFormat = 'HH:00'; // Hourly
-    // if (range === '1h') bucketFormat = 'mm'; // Minute
-    // if (range === '30d') bucketFormat = 'dd'; // Daily
-
+    // Bucket Size & Pre-filling
     const buckets: Record<string, { count: number; error: number }> = {};
+    let bucketUnit: "minute" | "hour" | "day" = "minute";
+
+    if (range === "60d" || range === "30d" || range === "7d") {
+      bucketUnit = "day";
+    } else if (range === "48h" || range === "24h") {
+      bucketUnit = "hour";
+    } else {
+      bucketUnit = "minute";
+    }
+
+    // Pre-fill buckets to ensure continuous X-axis
+    let current = startTime;
+    // Align start to the bucket unit
+    current = current.startOf(bucketUnit);
+
+    const end = now.endOf(bucketUnit);
+
+    while (current <= end) {
+      const key = current.toISO();
+      if (key) {
+        buckets[key] = { count: 0, error: 0 };
+      }
+      current = current.plus({ [bucketUnit + "s"]: 1 });
+    }
 
     executions.forEach((ex: any) => {
       const dt = DateTime.fromJSDate(ex.startedAt);
-      let key: string | null = null;
+      const key = dt.startOf(bucketUnit).toISO();
 
-      if (range === "30d") {
-        // Daily buckets
-        key = dt.startOf("day").toISO();
-      } else {
-        // Minute buckets (default for 24h, 1h, 7d per original logic)
-        key = dt.startOf("minute").toISO();
-      }
-
-      if (key) {
-        if (!buckets[key]) buckets[key] = { count: 0, error: 0 };
+      if (key && buckets[key]) {
         buckets[key].count++;
         if (ex.status === "failed") buckets[key].error++;
       }

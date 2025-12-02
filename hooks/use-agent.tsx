@@ -45,7 +45,7 @@ export function AgentProvider({ children, agentName }: AgentProviderProps) {
     setLoading(true);
     setError(null);
     try {
-      const agents = await api.agent.search(agentName);
+      const { agents } = await api.agent.search(agentName);
       const found = agents.find((a) => a.name === agentName);
       if (found) {
         setAgent(found);
@@ -83,25 +83,24 @@ export function AgentProvider({ children, agentName }: AgentProviderProps) {
 
   const toggleRuntime = async () => {
     setTogglingRuntime(true);
-    const action = runtimeStatus === "RUNNING" ? "stop" : "start";
+    const isRunning =
+      runtimeStatus === "RUNNING" || runtimeStatus === "BUILDING";
+    const targetStatus = isRunning ? "stopped" : "running";
 
     // Optimistic Update
-    const optimisticStatus = action === "start" ? "BUILDING" : "STOPPED";
+    // If starting, optimistic is BUILDING. If stopping, optimistic is STOPPED.
+    const optimisticStatus =
+      targetStatus === "running" ? "BUILDING" : "STOPPED";
     await mutateRuntime(optimisticStatus as any, false);
 
     try {
-      const res = await fetch(`/api/agent/${agentName}/runtime`, {
-        method: "POST",
-        body: JSON.stringify({ action }),
-        headers: { "Content-Type": "application/json" },
-      });
+      const res = await api.agent.toggle(agentName, targetStatus);
 
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.message || "Failed to toggle runtime");
+      if (!res.success) {
+        throw new Error(res.message || "Failed to toggle runtime");
       }
 
-      toast.success(`Agent ${action === "start" ? "starting" : "stopping"}...`);
+      toast.success(res.message || `Agent ${targetStatus}...`);
 
       // Trigger a revalidation
       mutateRuntime();

@@ -26,17 +26,38 @@ export async function GET(
   }
 
   try {
-    const versions = await prisma.agentVersion.findMany({
-      where: { agentName },
-      orderBy: { createdAt: "desc" },
-      select: {
-        version: true,
-        createdAt: true,
-        installCount: true,
+    const searchParams = req.nextUrl.searchParams;
+    const page = Math.max(1, parseInt(searchParams.get("page") || "1"));
+    const limit = Math.max(
+      1,
+      Math.min(100, parseInt(searchParams.get("limit") || "20"))
+    );
+    const skip = (page - 1) * limit;
+
+    const [total, versions] = await Promise.all([
+      prisma.agentVersion.count({ where: { agentName } }),
+      prisma.agentVersion.findMany({
+        where: { agentName },
+        orderBy: { createdAt: "desc" },
+        take: limit,
+        skip,
+        select: {
+          version: true,
+          createdAt: true,
+          installCount: true,
+        },
+      }),
+    ]);
+
+    return NextResponse.json({
+      versions,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
       },
     });
-
-    return NextResponse.json({ versions });
   } catch (error: any) {
     console.error("Error fetching versions:", error);
     return NextResponse.json(

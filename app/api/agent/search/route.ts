@@ -4,8 +4,12 @@ import { QueryParser } from "@/lib/query-parser";
 import { validateAuth } from "@/lib/auth";
 
 export async function POST(req: NextRequest) {
-  const { query } = await req.json();
+  const { query, page = 1, limit = 20 } = await req.json();
   const auth = await validateAuth();
+
+  const pageNum = Math.max(1, parseInt(page));
+  const limitNum = Math.max(1, Math.min(100, parseInt(limit)));
+  const skip = (pageNum - 1) * limitNum;
 
   try {
     const where: any = {
@@ -75,26 +79,30 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const agents = await prisma.agent.findMany({
-      where,
-      take: 20,
-      orderBy: {
-        createdAt: "desc",
-      },
-      include: {
-        versions: {
-          orderBy: { createdAt: "desc" },
-          take: 1,
+    const [total, agents] = await Promise.all([
+      prisma.agent.count({ where }),
+      prisma.agent.findMany({
+        where,
+        take: limitNum,
+        skip,
+        orderBy: {
+          createdAt: "desc",
         },
-        user: {
-          select: {
-            name: true,
-            image: true,
-            username: true,
+        include: {
+          versions: {
+            orderBy: { createdAt: "desc" },
+            take: 1,
+          },
+          user: {
+            select: {
+              name: true,
+              image: true,
+              username: true,
+            },
           },
         },
-      },
-    });
+      }),
+    ]);
 
     const enrichedAgents = agents.map((agent) => {
       const latestVersion = agent.versions[0];
@@ -110,7 +118,15 @@ export async function POST(req: NextRequest) {
       };
     });
 
-    return NextResponse.json({ agents: enrichedAgents });
+    return NextResponse.json({
+      agents: enrichedAgents,
+      pagination: {
+        total,
+        page: pageNum,
+        limit: limitNum,
+        totalPages: Math.ceil(total / limitNum),
+      },
+    });
   } catch (error: any) {
     console.error("Search failed:", error);
     return NextResponse.json(

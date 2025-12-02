@@ -28,13 +28,22 @@ export async function GET(
 
   try {
     const searchParams = req.nextUrl.searchParams;
-    const limit = parseInt(searchParams.get("limit") || "10", 10);
+    const page = Math.max(1, parseInt(searchParams.get("page") || "1"));
+    const limit = Math.max(
+      1,
+      Math.min(100, parseInt(searchParams.get("limit") || "10"))
+    );
+    const skip = (page - 1) * limit;
 
-    const executions = await prisma.agentExecution.findMany({
-      where: { agentName },
-      orderBy: { startedAt: "desc" },
-      take: limit,
-    });
+    const [total, executions] = await Promise.all([
+      prisma.agentExecution.count({ where: { agentName } }),
+      prisma.agentExecution.findMany({
+        where: { agentName },
+        orderBy: { startedAt: "desc" },
+        take: limit,
+        skip,
+      }),
+    ]);
 
     const tasks: AgentTask[] = executions.map((ex: any) => ({
       taskId: ex.taskId,
@@ -46,7 +55,15 @@ export async function GET(
       error: ex.error || undefined,
     }));
 
-    return NextResponse.json({ tasks });
+    return NextResponse.json({
+      tasks,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    });
   } catch (error: any) {
     console.error("Error fetching tasks:", error);
     return NextResponse.json(

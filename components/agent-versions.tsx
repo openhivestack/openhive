@@ -39,9 +39,9 @@ export function AgentVersions({
 
     setLoading(true);
     try {
-      const data = await api.agent.versions(agentName);
+      const { versions: fetchedVersions } = await api.agent.versions(agentName);
       setVersions(
-        data.map((v) => ({
+        fetchedVersions.map((v) => ({
           id: v.version,
           version: v.version,
           createdAt: v.createdAt,
