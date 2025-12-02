@@ -341,12 +341,77 @@ export class K8sCloudProvider implements CloudProvider {
   }
 
   async getAgentLogs(agentId: string): Promise<LogEvent[]> {
-    return [
-      {
-        timestamp: Date.now(),
-        message: `K8s logs not implemented for ${agentId}`,
-      },
-    ];
+    const safeAgentId = agentId.toLowerCase().replace(/[^a-z0-9-]/g, "-");
+    const labelSelector = `app=agent-${safeAgentId}`;
+
+    try {
+      const pods = await this.coreApi.listNamespacedPod({
+        namespace: this.namespace,
+        labelSelector: labelSelector,
+      });
+
+      // In object-style API, result is usually the object directly or { body: ... }
+      // If using the generated client (1.x+), it typically returns the object directly or Promise<V1PodList>
+      // We'll check both to be safe.
+      const items = (pods as any).items || (pods as any).body?.items;
+
+      if (!items || items.length === 0) {
+        return [];
+      }
+
+      const allLogs: LogEvent[] = [];
+
+      for (const pod of items) {
+        if (!pod.metadata?.name) continue;
+
+        try {
+          const res = await this.coreApi.readNamespacedPodLog({
+            name: pod.metadata.name,
+            namespace: this.namespace,
+            container: "agent",
+            tailLines: 100,
+            timestamps: true,
+          });
+
+          // In object-style API, readNamespacedPodLog usually returns string
+          const logs = typeof res === "string" ? res : (res as any).body;
+
+          if (logs) {
+            const lines = logs.split("\n");
+            for (const line of lines) {
+              if (!line.trim()) continue;
+
+              // Timestamps format: 2023-10-27T10:00:00.000000000Z ...rest of message
+              const firstSpace = line.indexOf(" ");
+              if (firstSpace > 0) {
+                const timestampStr = line.substring(0, firstSpace);
+                const message = line.substring(firstSpace + 1);
+                const timestamp = new Date(timestampStr).getTime();
+
+                if (!isNaN(timestamp)) {
+                  allLogs.push({ timestamp, message });
+                } else {
+                  // Fallback if parsing fails
+                  allLogs.push({ timestamp: Date.now(), message: line });
+                }
+              } else {
+                allLogs.push({ timestamp: Date.now(), message: line });
+              }
+            }
+          }
+        } catch (e) {
+          console.error(
+            `[K8s] Failed to read logs for pod ${pod.metadata.name}`,
+            e
+          );
+        }
+      }
+
+      return allLogs.sort((a, b) => a.timestamp - b.timestamp);
+    } catch (e) {
+      console.error(`[K8s] Failed to list pods for ${agentId}`, e);
+      return [];
+    }
   }
 
   async getAgentUrl(agentId: string): Promise<string | null> {
