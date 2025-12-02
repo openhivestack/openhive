@@ -11,7 +11,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Book, LogIn, Bot } from "lucide-react";
-import { PromptBox } from "@/components/prompt-box";
 import { useSession } from "@/lib/auth-client";
 import { Spinner } from "@/components/ui/spinner";
 import { config } from "@/lib/config";
@@ -19,7 +18,6 @@ import { useEffect, useState } from "react";
 import { Marquee } from "@/components/ui/marquee";
 import { ShineBorder } from "@/components/ui/shine-border";
 import { AnimatedGradientText } from "@/components/ui/animated-gradient-text";
-import { openhive } from "@/lib/openhive";
 import { AgentBlock } from "@/components/agent-block";
 
 export default function HomePage() {
@@ -32,8 +30,8 @@ export default function HomePage() {
     const fetchAgents = async () => {
       try {
         setIsLoadingAgents(true);
-        const data = await openhive.list();
-        setAgents(data);
+        // const data = await api.list();
+        setAgents([]);
       } catch (error) {
         console.error(error);
       } finally {
@@ -92,7 +90,7 @@ export default function HomePage() {
         </Button>
       </div>
       <div className="w-full max-w-sm mx-auto">
-        <CommandBox command="npx @open-hive/cli agent create my-new-agent" />
+        <CommandBox command="npx @open-hive/cli create my-new-agent" />
       </div>
       <div className="grid w-full max-w-5xl grid-cols-1 gap-8 mx-auto md:grid-cols-3">
         <Card className="relative w-full max-w-[350px] overflow-hidden">
