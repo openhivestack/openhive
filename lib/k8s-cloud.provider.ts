@@ -1,4 +1,9 @@
-import { CloudProvider } from "./cloud-provider.interface";
+import {
+  CloudProvider,
+  AgentTask,
+  AgentMetrics,
+  LogEvent,
+} from "./cloud-provider.interface";
 import * as k8s from "@kubernetes/client-node";
 
 export class K8sCloudProvider implements CloudProvider {
@@ -156,9 +161,9 @@ export class K8sCloudProvider implements CloudProvider {
     return "RUNNING"; // Mock
   }
 
-  async getAgentLogs(agentId: string): Promise<string[]> {
+  async getAgentLogs(agentId: string): Promise<LogEvent[]> {
     // eslint-disable-line @typescript-eslint/no-unused-vars
-    return ["K8s logs not implemented"];
+    return [{ timestamp: Date.now(), message: "K8s logs not implemented" }];
   }
 
   async getAgentUrl(agentId: string): Promise<string | null> {
@@ -176,5 +181,21 @@ export class K8sCloudProvider implements CloudProvider {
     // Format: http://<service-name>.<namespace>.svc.cluster.local
     // We map port 80 to targetPort 4000 in the service
     return `http://${serviceName}.${this.namespace}.svc.cluster.local`;
+  }
+
+  async getAgentTasks(agentId: string, limit = 10): Promise<AgentTask[]> {
+    // Mock implementation for K8s
+    return [];
+  }
+
+  async getAgentMetrics(agentId: string, range: string): Promise<AgentMetrics> {
+    // Mock implementation for K8s
+    return {
+      totalExecutions: 0,
+      successRate: 0,
+      avgDurationMs: 0,
+      errorCount: 0,
+      timeSeries: [],
+    };
   }
 }

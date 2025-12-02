@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { validateAuth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { cloudService } from "@/lib/cloud.service";
+import { nanoid } from "nanoid";
 
 export async function handleAgentRequest(
   req: NextRequest,
@@ -13,6 +14,8 @@ export async function handleAgentRequest(
   if (!auth?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  const start = Date.now();
 
   // 2. Lookup Agent
   const agent = await prisma.agent.findUnique({
@@ -110,15 +113,67 @@ export async function handleAgentRequest(
     headers.set("X-OpenHive-User-Id", auth.user.id);
     headers.set("X-OpenHive-User-Email", auth.user.email);
 
+    // Attempt to inspect body for Task ID if JSON
+    let body: any = req.body;
+    let taskId = nanoid();
+    const contentType = req.headers.get("content-type") || "";
+
+    if (req.method === "POST" && contentType.includes("application/json")) {
+      try {
+        // Buffer the body text so we can parse it AND pass it upstream
+        const text = await req.text();
+        body = text;
+
+        const json = JSON.parse(text);
+
+        if (json?.message?.messageId) {
+          taskId = json.message.messageId;
+        } else if (json?.taskId) {
+          taskId = json.taskId;
+        } else if (json?.id) {
+          taskId = json.id;
+        }
+      } catch (e) {
+        // Ignore body parse errors, fallback to random ID
+        console.warn("[Agent Proxy] Failed to parse JSON body:", e);
+      }
+    }
+
     const response = await fetch(targetUrl, {
       method: req.method,
       headers,
-      body: req.body,
+      body: body,
       duplex: "half",
     } as any);
 
-    // 7. Return Response
+    // 7. Return Response & Log Metrics
     const responseHeaders = new Headers(response.headers);
+
+    const durationMs = Date.now() - start;
+    const status = response.ok ? "completed" : "failed";
+    const error = response.ok
+      ? undefined
+      : `HTTP ${response.status}: ${response.statusText}`;
+
+    // Log execution asynchronously
+    // Note: In serverless environments (Vercel), you should use waitUntil if available.
+    // Here we await it to ensure visibility, as the latency impact is minimal.
+    try {
+      await prisma.agentExecution.create({
+        data: {
+          agentName,
+          taskId: taskId.toString(),
+          agentVersion: latestVersion.version,
+          status,
+          startedAt: new Date(start),
+          completedAt: new Date(),
+          durationMs,
+          error,
+        },
+      });
+    } catch (logError) {
+      console.error("Failed to log agent execution:", logError);
+    }
 
     return new NextResponse(response.body, {
       status: response.status,

@@ -11,6 +11,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { DateTime } from "luxon";
+import { api } from "@/lib/api-client";
 
 interface AgentVersionsProps {
   agentName: string;
@@ -38,11 +39,16 @@ export function AgentVersions({
 
     setLoading(true);
     try {
-      const res = await fetch(`/api/agent/${agentName}/versions`);
-      if (res.ok) {
-        const data = await res.json();
-        setVersions(data.versions);
-      }
+      const data = await api.agent.versions(agentName);
+      setVersions(
+        data.map((v) => ({
+          id: v.version,
+          version: v.version,
+          createdAt: v.createdAt,
+          description: "",
+          downloadCount: v.installCount,
+        }))
+      );
     } catch (error) {
       console.error("Failed to fetch versions:", error);
     } finally {

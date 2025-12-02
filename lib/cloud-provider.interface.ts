@@ -1,3 +1,24 @@
+export interface AgentTask {
+  taskId: string;
+  status: string;
+  agentVersion: string;
+  startTime: string;
+  endTime?: string;
+}
+
+export interface AgentMetrics {
+  totalExecutions: number;
+  successRate: number;
+  avgDurationMs: number;
+  errorCount: number;
+  timeSeries: { timestamp: string; value: number }[];
+}
+
+export interface LogEvent {
+  timestamp: number;
+  message: string;
+}
+
 export interface CloudProvider {
   /**
    * Upload agent source code (zip) to storage
@@ -24,7 +45,7 @@ export interface CloudProvider {
   /**
    * Get recent logs for the agent
    */
-  getAgentLogs(agentId: string): Promise<string[]>;
+  getAgentLogs(agentId: string): Promise<LogEvent[]>;
 
   /**
    * Get the public URL where the agent is accessible
@@ -37,4 +58,14 @@ export interface CloudProvider {
    * (e.g. The Cluster Service URL)
    */
   getInternalAgentUrl(agentId: string): Promise<string | null>;
+
+  /**
+   * Get executed tasks for the agent
+   */
+  getAgentTasks(agentId: string, limit?: number): Promise<AgentTask[]>;
+
+  /**
+   * Get execution metrics for the agent
+   */
+  getAgentMetrics(agentId: string, range: string): Promise<AgentMetrics>;
 }

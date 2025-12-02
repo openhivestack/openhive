@@ -1,6 +1,5 @@
 "use client";
 
-import { Agent } from "@/lib/types";
 import {
   Table,
   TableBody,
@@ -12,9 +11,10 @@ import {
 import { Badge } from "@/components/ui/badge";
 import millify from "millify";
 import Link from "next/link";
+import { AgentDetail } from "@/lib/api-client";
 
 interface AgentTableProps {
-  agents: Agent[];
+  agents: AgentDetail[];
 }
 
 export function AgentTable({ agents }: AgentTableProps) {
@@ -44,7 +44,7 @@ export function AgentTable({ agents }: AgentTableProps) {
                   href={`/agent/${agent.name}`}
                   className="text-xs text-muted-foreground hover:text-primary"
                 >
-                  v{agent.version}
+                  v{agent.latestVersion}
                 </Link>
               </div>
             </TableCell>
@@ -65,15 +65,15 @@ export function AgentTable({ agents }: AgentTableProps) {
             </TableCell>
             <TableCell>
               <Badge
-                variant={agent.private ? "private" : "public"}
+                variant={!agent.isPublic ? "private" : "public"}
                 size="sm"
                 className="py-0 mt-1"
               >
-                {agent.private ? "Private" : "Public"}
+                {!agent.isPublic ? "Private" : "Public"}
               </Badge>
             </TableCell>
             <TableCell className="text-right">
-              {millify(agent.downloads || 0)}
+              {millify(agent.installCount || agent.downloads || 0)}
             </TableCell>
           </TableRow>
         ))}

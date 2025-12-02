@@ -8,11 +8,7 @@ import { RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism";
-
-interface LogEvent {
-  timestamp: number;
-  message: string;
-}
+import { api, LogEvent } from "@/lib/api-client";
 
 export default function AgentLogsPage() {
   const params = useParams();
@@ -25,9 +21,8 @@ export default function AgentLogsPage() {
   const fetchLogs = useCallback(async () => {
     setLoadingLogs(true);
     try {
-      const res = await fetch(`/api/agent/${agentName}/logs`);
-      const data = await res.json();
-      setLogs(data.logs || []);
+      const logs = await api.agent.telemetry.logs(agentName);
+      setLogs(logs);
     } catch (error) {
       console.error("Failed to fetch logs:", error);
     } finally {
@@ -57,7 +52,7 @@ export default function AgentLogsPage() {
       </div>
 
       <div className="bg-black text-gray-300 font-mono text-sm h-full flex flex-col rounded-none">
-        <ScrollArea className="flex-1 p-4">
+        <ScrollArea className="flex-1 p-4 max-h-[calc(100vh-180px)]">
           {logs.length === 0 ? (
             <div className="text-gray-500 italic">
               {loadingLogs ? "Fetching logs..." : "No logs available."}

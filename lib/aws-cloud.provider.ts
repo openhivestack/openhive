@@ -1,6 +1,16 @@
-import { CloudProvider } from "./cloud-provider.interface";
+import {
+  CloudProvider,
+  AgentTask,
+  AgentMetrics,
+  LogEvent,
+} from "./cloud-provider.interface";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { CodeBuildClient, StartBuildCommand } from "@aws-sdk/client-codebuild";
+import {
+  CloudWatchLogsClient,
+  FilterLogEventsCommand,
+  GetLogEventsCommand,
+} from "@aws-sdk/client-cloudwatch-logs";
 import {
   ECSClient,
   DescribeServicesCommand,
@@ -20,6 +30,7 @@ export class AwsCloudProvider implements CloudProvider {
   private codebuild: CodeBuildClient;
   private ecs: ECSClient;
   private sd: ServiceDiscoveryClient;
+  private logs: CloudWatchLogsClient;
   private bucket: string;
   private project: string;
   private cluster: string;
@@ -36,6 +47,7 @@ export class AwsCloudProvider implements CloudProvider {
     this.codebuild = new CodeBuildClient({ region: process.env.AWS_REGION });
     this.ecs = new ECSClient({ region: process.env.AWS_REGION });
     this.sd = new ServiceDiscoveryClient({ region: process.env.AWS_REGION });
+    this.logs = new CloudWatchLogsClient({ region: process.env.AWS_REGION });
 
     this.bucket = process.env.AWS_AGENT_SOURCES_BUCKET as string;
     this.project = process.env.AWS_CODEBUILD_PROJECT as string;
@@ -312,10 +324,11 @@ export class AwsCloudProvider implements CloudProvider {
     agentId: string
   ): Promise<"BUILDING" | "RUNNING" | "STOPPED" | "FAILED" | "UNKNOWN"> {
     try {
+      const serviceName = `service-${agentId}`;
       const res = await this.ecs.send(
         new DescribeServicesCommand({
           cluster: this.cluster,
-          services: [agentId],
+          services: [serviceName],
         })
       );
 
@@ -333,9 +346,29 @@ export class AwsCloudProvider implements CloudProvider {
     }
   }
 
-  async getAgentLogs(agentId: string): Promise<string[]> {
-    console.log(agentId);
-    return ["Logs not implemented in this demo"];
+  async getAgentLogs(agentId: string): Promise<LogEvent[]> {
+    try {
+      const command = new FilterLogEventsCommand({
+        logGroupName: "/ecs/openhive-agents",
+        logStreamNamePrefix: agentId,
+        limit: 100, // Fetch last 100 lines
+        startTime: Date.now() - 24 * 60 * 60 * 1000, // Last 24 hours
+      });
+
+      const response = await this.logs.send(command);
+
+      if (!response.events) return [];
+
+      return response.events
+        .map((e) => ({
+          timestamp: e.timestamp || Date.now(),
+          message: e.message || "",
+        }))
+        .sort((a, b) => a.timestamp - b.timestamp);
+    } catch (e) {
+      console.error("Error fetching logs:", e);
+      return [];
+    }
   }
 
   async getAgentUrl(agentId: string): Promise<string | null> {
@@ -355,5 +388,60 @@ export class AwsCloudProvider implements CloudProvider {
 
     // Fallback to internal DNS if no proxy configured
     return `http://${agentId}.openhive.local:3000`;
+  }
+
+  async getAgentTasks(agentId: string, limit = 10): Promise<AgentTask[]> {
+    try {
+      // Attempt to fetch logs that look like task completions
+      // We look for "status-update" and "completed"
+      const command = new FilterLogEventsCommand({
+        logGroupName: "/ecs/openhive-agents",
+        logStreamNamePrefix: agentId,
+        filterPattern:
+          '{ $.kind = "status-update" && $.status.state = "completed" }',
+        limit: limit,
+      });
+
+      const response = await this.logs.send(command);
+
+      if (!response.events) return [];
+
+      return response.events.map((event) => {
+        try {
+          const data = JSON.parse(event.message || "{}");
+          return {
+            taskId: data.taskId || "unknown",
+            status: data.status?.state || "completed",
+            startTime:
+              data.status?.timestamp ||
+              new Date(event.timestamp || Date.now()).toISOString(),
+            endTime: data.status?.timestamp,
+            agentVersion: "latest",
+          };
+        } catch {
+          return {
+            taskId: "unknown",
+            status: "unknown",
+            startTime: new Date(event.timestamp || Date.now()).toISOString(),
+            agentVersion: "unknown",
+          };
+        }
+      });
+    } catch (error) {
+      console.error("Error fetching agent tasks logs:", error);
+      return [];
+    }
+  }
+
+  async getAgentMetrics(agentId: string, range: string): Promise<AgentMetrics> {
+    // Mock implementation for now as we don't have a dedicated metrics store
+    // In a real implementation, this would query CloudWatch Metrics or aggregate logs
+    return {
+      totalExecutions: 0,
+      successRate: 0,
+      avgDurationMs: 0,
+      errorCount: 0,
+      timeSeries: [],
+    };
   }
 }

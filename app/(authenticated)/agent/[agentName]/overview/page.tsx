@@ -40,14 +40,7 @@ import {
 import { DateTime } from "luxon";
 import { Terminal, Zap, ChevronLeft, ChevronRight } from "lucide-react";
 import useSWR from "swr";
-
-interface Metrics {
-  uptimeDays: number;
-  successRate: number;
-  avgLatency: number;
-  chartData: { name: string; tasks: number }[];
-  totalTasks: number;
-}
+import { AgentDetail, api } from "@/lib/api-client";
 
 interface Activity {
   id: string;
@@ -55,16 +48,7 @@ interface Activity {
   status: string;
   duration: number | null;
   createdAt: string;
-  agentVersion: {
-    version: string;
-  };
-}
-
-interface Pagination {
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
+  agentVersion: string;
 }
 
 const chartConfig = {
@@ -74,29 +58,28 @@ const chartConfig = {
   },
 } satisfies ChartConfig;
 
-const fetcher = (url: string) => fetch(url).then((res) => res.json());
-
 export default function AgentOverviewPage() {
   const params = useParams();
   const agentName = params.agentName as string;
 
-  const { agent, loading } = useAgent();
+  const { agent: baseAgent, loading } = useAgent();
   const [page, setPage] = useState(1);
   const [versionCount, setVersionCount] = useState(0);
 
-  // Fetch Version Count (we can use the separate versions API we made or update the get method)
-  // For simplicity, let's just fetch the full list from the new API to get the count
-  // Or we can update the Agent fetch to include it.
-  // Actually, prisma.registry.ts toAgentCard calculates download count but doesn't seem to expose version count directly.
-  // Let's use the new versions API to get the count for now.
+  // Fetch Full Agent Card Details
+  const { data: agentDetails } = useSWR<AgentDetail>(
+    agentName ? ["agent-card", agentName] : null,
+    ([, name]: [string, string]) => api.agent.card(name)
+  );
+
+  // Use details if available, otherwise fall back to base agent
+  const agent = agentDetails || (baseAgent as unknown as AgentDetail);
+
   useEffect(() => {
     const fetchVersionCount = async () => {
       try {
-        const res = await fetch(`/api/agent/${agentName}/versions`);
-        if (res.ok) {
-          const data = await res.json();
-          setVersionCount(data.versions.length);
-        }
+        const versions = await api.agent.versions(agentName);
+        setVersionCount(versions.length);
       } catch (error) {
         console.error("Failed to fetch version count:", error);
       }
@@ -105,27 +88,54 @@ export default function AgentOverviewPage() {
   }, [agentName]);
 
   // Fetch Metrics with SWR
-  const { data: metrics, isLoading: loadingMetrics } = useSWR<Metrics>(
-    `/api/agent/${agentName}/metrics`,
-    fetcher,
+  const {
+    data: metrics,
+    isLoading: loadingMetrics,
+    error: metricsError,
+  } = useSWR(
+    agentName ? ["metrics", agentName] : null,
+    ([, name]: [string, string]) =>
+      api.agent.telemetry.metrics(name).then((m) => ({
+        uptimeDays: 0, // Not available in API yet
+        successRate: m?.successRate ?? 0,
+        avgLatency: m?.avgDurationMs ?? 0,
+        totalTasks: m?.totalExecutions ?? 0,
+        chartData: (m?.timeSeries || []).map((t) => ({
+          name: DateTime.fromISO(t.timestamp).toFormat("HH:mm"),
+          tasks: t.value,
+        })),
+      })),
     {
-      refreshInterval: 30000, // Refresh every 30 seconds
+      refreshInterval: 30000,
+      shouldRetryOnError: false,
     }
   );
 
   // Fetch Activities with SWR
-  const { data: activitiesData, isLoading: activitiesLoading } = useSWR(
-    `/api/agent/${agentName}/activity?page=${page}&limit=5`,
-    fetcher,
+  const {
+    data: tasksData,
+    isLoading: loadingActivities,
+    error: activitiesError,
+  } = useSWR(
+    agentName ? ["tasks", agentName] : null,
+    ([, name]: [string, string]) => api.agent.telemetry.tasks(name, 5),
     {
       refreshInterval: 5000,
-      keepPreviousData: true,
+      shouldRetryOnError: false,
     }
   );
 
-  const activities: Activity[] = activitiesData?.activities || [];
-  const pagination: Pagination | null = activitiesData?.pagination || null;
-  const loadingActivities = activitiesLoading;
+  const activities: Activity[] =
+    tasksData?.map((t) => ({
+      id: t.taskId,
+      type: "Task",
+      status: t.status,
+      duration: t.durationMs || 0,
+      createdAt: t.startTime,
+      agentVersion: t.agentVersion || "?",
+    })) || [];
+
+  const pagination = { total: 0, page: 1, limit: 5, totalPages: 1 };
 
   if (loading) {
     return (
@@ -140,6 +150,8 @@ export default function AgentOverviewPage() {
     return <div>Agent not found</div>;
   }
 
+  const hasChartData = metrics?.chartData && metrics.chartData.length > 0;
+
   return (
     <div className="space-y-4 px-4 py-4">
       {/* Stat Cards */}
@@ -150,7 +162,9 @@ export default function AgentOverviewPage() {
             <Terminal className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-sm font-bold">{agent.skills.length}</div>
+            <div className="text-sm font-bold">
+              {agent?.skills?.length || 0}
+            </div>
             <p className="text-xs text-muted-foreground">
               Registered capabilities
             </p>
@@ -164,6 +178,8 @@ export default function AgentOverviewPage() {
           <CardContent>
             {loadingMetrics ? (
               <Skeleton className="h-5 w-16" />
+            ) : metricsError ? (
+              <div className="text-sm font-bold text-red-500">-</div>
             ) : (
               <div className="text-sm font-bold">
                 {metrics?.successRate ?? 0}%
@@ -180,6 +196,8 @@ export default function AgentOverviewPage() {
           <CardContent>
             {loadingMetrics ? (
               <Skeleton className="h-5 w-16" />
+            ) : metricsError ? (
+              <div className="text-sm font-bold text-red-500">-</div>
             ) : (
               <div className="text-sm font-bold">
                 {metrics?.uptimeDays ?? 0} Days
@@ -196,6 +214,8 @@ export default function AgentOverviewPage() {
           <CardContent>
             {loadingMetrics ? (
               <Skeleton className="h-5 w-16" />
+            ) : metricsError ? (
+              <div className="text-sm font-bold text-red-500">-</div>
             ) : (
               <div className="text-sm font-bold">
                 {metrics?.avgLatency ?? 0}ms
@@ -221,7 +241,11 @@ export default function AgentOverviewPage() {
             <CardContent>
               {loadingMetrics ? (
                 <Skeleton className="h-[150px] w-full" />
-              ) : (
+              ) : metricsError ? (
+                <div className="h-[150px] w-full flex items-center justify-center text-muted-foreground text-sm bg-muted/10 rounded-md">
+                  Failed to load execution data.
+                </div>
+              ) : hasChartData ? (
                 <ChartContainer
                   config={chartConfig}
                   className="h-[150px] w-full -ml-6"
@@ -249,6 +273,10 @@ export default function AgentOverviewPage() {
                     />
                   </BarChart>
                 </ChartContainer>
+              ) : (
+                <div className="h-[150px] w-full flex items-center justify-center text-muted-foreground text-sm bg-muted/10 rounded-md">
+                  No execution data available for this period.
+                </div>
               )}
             </CardContent>
           </Card>
@@ -352,6 +380,15 @@ export default function AgentOverviewPage() {
                     </TableCell>
                   </TableRow>
                 ))
+              ) : activitiesError ? (
+                <TableRow>
+                  <TableCell
+                    colSpan={5}
+                    className="text-center text-muted-foreground py-8 text-red-500"
+                  >
+                    Failed to load recent activity.
+                  </TableCell>
+                </TableRow>
               ) : activities.length === 0 ? (
                 <TableRow>
                   <TableCell
@@ -365,7 +402,8 @@ export default function AgentOverviewPage() {
                 activities.map((activity) => (
                   <TableRow key={activity.id}>
                     <TableCell>
-                      {activity.status === "SUCCESS" ? (
+                      {activity.status}
+                      {activity.status === "completed" ? (
                         <CircleCheck className="size-4 text-green-500" />
                       ) : (
                         <XCircle className="size-4 text-red-500" />
@@ -375,7 +413,7 @@ export default function AgentOverviewPage() {
                       {activity.type}
                     </TableCell>
                     <TableCell className="text-xs">
-                      v{activity.agentVersion.version}
+                      v{activity.agentVersion}
                     </TableCell>
                     <TableCell>
                       {activity.duration ? `${activity.duration}ms` : "-"}

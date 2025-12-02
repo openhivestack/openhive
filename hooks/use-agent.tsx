@@ -8,8 +8,8 @@ import {
   ReactNode,
   useCallback,
 } from "react";
-import { Agent } from "@/lib/types";
-import { openhive } from "@/lib/openhive";
+import { Agent } from "@prisma/client";
+import { api } from "@/lib/api-client";
 import useSWR, { KeyedMutator } from "swr";
 import { toast } from "sonner";
 
@@ -33,8 +33,6 @@ interface AgentProviderProps {
   agentName: string;
 }
 
-const fetcher = (url: string) => fetch(url).then((res) => res.json());
-
 export function AgentProvider({ children, agentName }: AgentProviderProps) {
   const [agent, setAgent] = useState<Agent | null>(null);
   const [loading, setLoading] = useState(true);
@@ -47,9 +45,13 @@ export function AgentProvider({ children, agentName }: AgentProviderProps) {
     setLoading(true);
     setError(null);
     try {
-      const data = await openhive.get(agentName);
-      // Cast to Agent as the SDK returns AgentCard but we use the extended Agent type
-      setAgent(data as unknown as Agent);
+      const agents = await api.agent.search(agentName);
+      const found = agents.find((a) => a.name === agentName);
+      if (found) {
+        setAgent(found);
+      } else {
+        throw new Error("Agent not found");
+      }
     } catch (err) {
       setError(err as Error);
     } finally {
@@ -62,38 +64,30 @@ export function AgentProvider({ children, agentName }: AgentProviderProps) {
   }, [fetchAgent]);
 
   // Fetch Runtime Status with SWR
-  const { data: runtimeData, mutate: mutateRuntime } = useSWR(
-    agentName ? `/api/agent/${agentName}/runtime` : null,
-    fetcher,
+  const { data: status, mutate: mutateRuntime } = useSWR(
+    agentName ? ["agent-status", agentName] : null,
+    ([_, name]) => api.agent.telemetry.status(name),
     {
-      refreshInterval: (data) => {
+      refreshInterval: (s) => {
         // Poll faster if transitioning
-        if (
-          data?.status === "STARTING" ||
-          data?.status === "STOPPING" ||
-          data?.status === "PROVISIONING"
-        )
-          return 1000;
+        if (s === "BUILDING" || s === "UNKNOWN") return 1000;
         // Poll slower if stable
         return 5000;
       },
     }
   );
 
-  const runtimeStatus = runtimeData?.status || "STOPPED";
-  const loadingRuntime = !runtimeData && !togglingRuntime;
-  const isTransitioning =
-    runtimeStatus === "STARTING" ||
-    runtimeStatus === "STOPPING" ||
-    runtimeStatus === "PROVISIONING";
+  const runtimeStatus = status || "STOPPED";
+  const loadingRuntime = !status && !togglingRuntime;
+  const isTransitioning = runtimeStatus === "BUILDING";
 
   const toggleRuntime = async () => {
     setTogglingRuntime(true);
     const action = runtimeStatus === "RUNNING" ? "stop" : "start";
 
     // Optimistic Update
-    const optimisticStatus = action === "start" ? "STARTING" : "STOPPING";
-    await mutateRuntime({ ...runtimeData, status: optimisticStatus }, false);
+    const optimisticStatus = action === "start" ? "BUILDING" : "STOPPED";
+    await mutateRuntime(optimisticStatus as any, false);
 
     try {
       const res = await fetch(`/api/agent/${agentName}/runtime`, {

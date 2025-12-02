@@ -175,6 +175,23 @@ CREATE TABLE "agentVersion" (
 );
 
 -- CreateTable
+CREATE TABLE "agentExecution" (
+    "id" TEXT NOT NULL,
+    "agentName" TEXT NOT NULL,
+    "taskId" TEXT NOT NULL,
+    "agentVersion" TEXT,
+    "status" TEXT NOT NULL,
+    "startedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "completedAt" TIMESTAMP(3),
+    "durationMs" INTEGER,
+    "error" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "agentExecution_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "subscription" (
     "id" TEXT NOT NULL,
     "plan" TEXT NOT NULL,
@@ -228,6 +245,12 @@ CREATE INDEX "agent_organizationId_idx" ON "agent"("organizationId");
 -- CreateIndex
 CREATE UNIQUE INDEX "agentVersion_agentName_version_key" ON "agentVersion"("agentName", "version");
 
+-- CreateIndex
+CREATE INDEX "agentExecution_agentName_startedAt_idx" ON "agentExecution"("agentName", "startedAt");
+
+-- CreateIndex
+CREATE INDEX "agentExecution_taskId_idx" ON "agentExecution"("taskId");
+
 -- AddForeignKey
 ALTER TABLE "session" ADD CONSTRAINT "session_userId_fkey" FOREIGN KEY ("userId") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
@@ -257,3 +280,6 @@ ALTER TABLE "agent" ADD CONSTRAINT "agent_organizationId_fkey" FOREIGN KEY ("org
 
 -- AddForeignKey
 ALTER TABLE "agentVersion" ADD CONSTRAINT "agentVersion_agentName_fkey" FOREIGN KEY ("agentName") REFERENCES "agent"("name") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "agentExecution" ADD CONSTRAINT "agentExecution_agentName_fkey" FOREIGN KEY ("agentName") REFERENCES "agent"("name") ON DELETE CASCADE ON UPDATE CASCADE;

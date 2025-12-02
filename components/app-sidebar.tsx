@@ -33,7 +33,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         title: "Agents",
         url: "#",
         icon: SquareTerminal,
-        isActive: pathname.startsWith("/agent/list"),
+        isActive: true,
         items: [
           {
             title: "All",
@@ -56,6 +56,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         title: "Documentation",
         url: "https://docs.openhive.sh/docs",
         icon: BookOpen,
+        isActive: true,
         items: [
           {
             title: "Introduction",
