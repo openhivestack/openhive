@@ -51,8 +51,10 @@ app.use('/:agentName', (req, res, next) => {
   const namespace = process.env.CLOUD_MAP_NAMESPACE || 'openhive.local';
   
   // Target internal Cloud Map DNS
-  // Agents are at http://[agentName].[namespace]:3000
-  const target = `http://${agentName}.${namespace}:3000`;
+  // Agents are at http://[agentName].[namespace]:PORT
+  // Port is determined by the x-openhive-agent-port header (default 4000)
+  const agentPort = req.headers['x-openhive-agent-port'] || 4000;
+  const target = `http://${agentName}.${namespace}:${agentPort}`;
 
   console.log(`[${req.id}] Proxying request for agent ${agentName} to ${target}${req.url}`);
 

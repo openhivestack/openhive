@@ -23,7 +23,6 @@ model User {
   sessions            Session[]
   accounts            Account[]
   agents              Agent[]
-  agentVersionMetrics AgentVersionMetric[]
   apikeys             Apikey[]
 
   members     Member[]
@@ -142,7 +141,6 @@ model Organization {
   members             Member[]
   invitations         Invitation[]
   agents              Agent[]
-  agentVersionMetrics AgentVersionMetric[]
 
   @@unique([slug])
   @@map("organization")
@@ -174,94 +172,51 @@ model Invitation {
   @@map("invitation")
 }
 
+// --- AGENT ECOSYSTEM MODELS ---
+
 model Agent {
-  id String @id @default(cuid())
-
-  name          String         @unique
-  private       Boolean        @default(true)
-  latestVersion String
-  versions      AgentVersion[]
-  runtime       String         @default("")
-  status        String         @default("PENDING")
-
-  user   User?   @relation(fields: [userId], references: [id])
-  userId String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
+  id            String    @id // DID: hive:agent:<agent-name> or hive:agent:<scope>/<agent-name>
+  name          String    @unique
+  description   String?
+  isPublic      Boolean   @default(true)
+  latestVersion String?
+  runtime       String?   // "node" or "python"
+  tags          String[]  // Searchable tags
+  
+  userId        String?
+  user          User?     @relation(fields: [userId], references: [id])
+  
   organizationId String?
-  Organization   Organization? @relation(fields: [organizationId], references: [id])
+  organization   Organization? @relation(fields: [organizationId], references: [id])
+
+  versions      AgentVersion[]
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
   @@map("agent")
-}
-
-model AgentSkill {
-  id String @id @default(cuid())
-
-  skillId     String
-  name        String   @default("")
-  description String   @default("")
-  tags        String[] @default([])
-
-  input  Json @default("{}")
-  output Json @default("{}")
-
-  agentVersionId String
-  agentVersion   AgentVersion @relation(fields: [agentVersionId], references: [id])
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@map("agentSkill")
+  @@index([name])
+  @@index([userId])
+  @@index([organizationId])
 }
 
 model AgentVersion {
-  id String @id @default(cuid())
+  id            String    @id @default(cuid())
+  version       String    // Semver: 1.0.0
+  installCount  Int       @default(0)
+  agentCard     Json      // .agent-card.json
+  // deploymentUrl was removed in favor of dynamic resolution
 
-  version         String
-  description     String?
-  tags            String[]             @default([])
-  protocolVersion String
-  skills          AgentSkill[]
-  metrics         AgentVersionMetric[]
-  url             String
-  runtime         String
-  capabilities    Json
-  deployed        Boolean              @default(false)
 
-  downloadCount Int @default(0)
+  // Relations
+  agentName     String
+  agent         Agent     @relation(fields: [agentName], references: [name], onDelete: Cascade)
 
-  agent   Agent  @relation(fields: [agentId], references: [id])
-  agentId String
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
-  createdAt DateTime @default(now())
-
-  @@unique([agentId, version])
+  @@unique([agentName, version])
   @@map("agentVersion")
-}
-
-model AgentVersionMetric {
-  id String @id @default(cuid())
-
-  type      String // "DOWNLOAD", "TASK_EXECUTION"
-  status    String // "SUCCESS", "FAILURE"
-  duration  Int? // Execution duration in ms
-  userAgent String?
-  context   Json?
-
-  agentVersion   AgentVersion @relation(fields: [agentVersionId], references: [id], onDelete: Cascade)
-  agentVersionId String
-
-  userId String?
-  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
-
-  organizationId String?
-  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
-
-  createdAt DateTime @default(now())
-
-  @@map("agentVersionMetric")
 }
 
 model Subscription {

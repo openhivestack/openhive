@@ -1,9 +1,9 @@
 import { betterAuth, User } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
-import { PrismaClient } from "@prisma/client";
 import { headers } from "next/headers";
 import { Session } from "better-auth/types";
 import { nextCookies } from "better-auth/next-js";
+import { prisma } from "./db";
 import {
   oneTimeToken,
   admin,
@@ -15,8 +15,6 @@ import {
 import { apiKey } from "better-auth/plugins";
 
 export type { UserSession } from "./types";
-
-const prisma = new PrismaClient();
 
 // Conditionally configure social providers
 const socialProviders: any = {};

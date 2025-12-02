@@ -12,6 +12,8 @@ CREATE TABLE "user" (
     "banReason" TEXT,
     "banExpires" TIMESTAMP(3),
     "stripeCustomerId" TEXT,
+    "username" TEXT,
+    "displayUsername" TEXT,
 
     CONSTRAINT "user_pkey" PRIMARY KEY ("id")
 );
@@ -146,65 +148,30 @@ CREATE TABLE "invitation" (
 CREATE TABLE "agent" (
     "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
-    "private" BOOLEAN NOT NULL DEFAULT true,
-    "latestVersion" TEXT NOT NULL,
-    "runtime" TEXT NOT NULL DEFAULT '',
-    "status" TEXT NOT NULL DEFAULT 'PENDING',
+    "description" TEXT,
+    "isPublic" BOOLEAN NOT NULL DEFAULT true,
+    "latestVersion" TEXT,
+    "runtime" TEXT,
+    "tags" TEXT[],
     "userId" TEXT,
+    "organizationId" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
-    "organizationId" TEXT,
 
     CONSTRAINT "agent_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
-CREATE TABLE "agentSkill" (
-    "id" TEXT NOT NULL,
-    "skillId" TEXT NOT NULL,
-    "name" TEXT NOT NULL DEFAULT '',
-    "description" TEXT NOT NULL DEFAULT '',
-    "tags" TEXT[] DEFAULT ARRAY[]::TEXT[],
-    "input" JSONB NOT NULL DEFAULT '{}',
-    "output" JSONB NOT NULL DEFAULT '{}',
-    "agentVersionId" TEXT NOT NULL,
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TIMESTAMP(3) NOT NULL,
-
-    CONSTRAINT "agentSkill_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "agentVersion" (
     "id" TEXT NOT NULL,
     "version" TEXT NOT NULL,
-    "description" TEXT,
-    "tags" TEXT[] DEFAULT ARRAY[]::TEXT[],
-    "protocolVersion" TEXT NOT NULL,
-    "url" TEXT NOT NULL,
-    "runtime" TEXT NOT NULL,
-    "capabilities" JSONB NOT NULL,
-    "downloadCount" INTEGER NOT NULL DEFAULT 0,
-    "agentId" TEXT NOT NULL,
+    "installCount" INTEGER NOT NULL DEFAULT 0,
+    "agentCard" JSONB NOT NULL,
+    "agentName" TEXT NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "agentVersion_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
-CREATE TABLE "agentVersionMetric" (
-    "id" TEXT NOT NULL,
-    "type" TEXT NOT NULL,
-    "status" TEXT NOT NULL,
-    "duration" INTEGER,
-    "userAgent" TEXT,
-    "context" JSONB,
-    "agentVersionId" TEXT NOT NULL,
-    "userId" TEXT,
-    "organizationId" TEXT,
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-
-    CONSTRAINT "agentVersionMetric_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -229,7 +196,19 @@ CREATE TABLE "subscription" (
 CREATE UNIQUE INDEX "user_email_key" ON "user"("email");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "user_username_key" ON "user"("username");
+
+-- CreateIndex
+CREATE INDEX "session_userId_idx" ON "session"("userId");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "session_token_key" ON "session"("token");
+
+-- CreateIndex
+CREATE INDEX "account_userId_idx" ON "account"("userId");
+
+-- CreateIndex
+CREATE INDEX "verification_identifier_idx" ON "verification"("identifier");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "organization_slug_key" ON "organization"("slug");
@@ -238,7 +217,16 @@ CREATE UNIQUE INDEX "organization_slug_key" ON "organization"("slug");
 CREATE UNIQUE INDEX "agent_name_key" ON "agent"("name");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "agentVersion_agentId_version_key" ON "agentVersion"("agentId", "version");
+CREATE INDEX "agent_name_idx" ON "agent"("name");
+
+-- CreateIndex
+CREATE INDEX "agent_userId_idx" ON "agent"("userId");
+
+-- CreateIndex
+CREATE INDEX "agent_organizationId_idx" ON "agent"("organizationId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "agentVersion_agentName_version_key" ON "agentVersion"("agentName", "version");
 
 -- AddForeignKey
 ALTER TABLE "session" ADD CONSTRAINT "session_userId_fkey" FOREIGN KEY ("userId") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -268,16 +256,4 @@ ALTER TABLE "agent" ADD CONSTRAINT "agent_userId_fkey" FOREIGN KEY ("userId") RE
 ALTER TABLE "agent" ADD CONSTRAINT "agent_organizationId_fkey" FOREIGN KEY ("organizationId") REFERENCES "organization"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "agentSkill" ADD CONSTRAINT "agentSkill_agentVersionId_fkey" FOREIGN KEY ("agentVersionId") REFERENCES "agentVersion"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "agentVersion" ADD CONSTRAINT "agentVersion_agentId_fkey" FOREIGN KEY ("agentId") REFERENCES "agent"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "agentVersionMetric" ADD CONSTRAINT "agentVersionMetric_agentVersionId_fkey" FOREIGN KEY ("agentVersionId") REFERENCES "agentVersion"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "agentVersionMetric" ADD CONSTRAINT "agentVersionMetric_userId_fkey" FOREIGN KEY ("userId") REFERENCES "user"("id") ON DELETE SET NULL ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "agentVersionMetric" ADD CONSTRAINT "agentVersionMetric_organizationId_fkey" FOREIGN KEY ("organizationId") REFERENCES "organization"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "agentVersion" ADD CONSTRAINT "agentVersion_agentName_fkey" FOREIGN KEY ("agentName") REFERENCES "agent"("name") ON DELETE CASCADE ON UPDATE CASCADE;
