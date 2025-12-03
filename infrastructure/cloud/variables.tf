@@ -27,3 +27,15 @@ variable "gateway_secret" {
   sensitive   = true
   default     = "changeme_in_production" # Should be passed via -var or tfvars
 }
+
+variable "dockerhub_username" {
+  description = "Docker Hub Username for authenticated pulls"
+  type        = string
+  sensitive   = true
+}
+
+variable "dockerhub_token" {
+  description = "Docker Hub Access Token (preferred over password)"
+  type        = string
+  sensitive   = true
+}

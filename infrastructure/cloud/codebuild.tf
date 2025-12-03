@@ -60,6 +60,16 @@ resource "aws_codebuild_project" "agent_builder" {
       name  = "BUILD_ASSETS_BUCKET"
       value = aws_s3_bucket.agent_sources.bucket
     }
+    environment_variable {
+      name  = "DOCKERHUB_USERNAME"
+      value = aws_secretsmanager_secret.dockerhub_username.arn
+      type  = "SECRETS_MANAGER"
+    }
+    environment_variable {
+      name  = "DOCKERHUB_TOKEN"
+      value = aws_secretsmanager_secret.dockerhub_token.arn
+      type  = "SECRETS_MANAGER"
+    }
   }
 
   source {
@@ -72,6 +82,8 @@ phases:
     commands:
       - echo Logging in to Amazon ECR...
       - aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com
+      - echo Logging in to Docker Hub...
+      - echo $DOCKERHUB_TOKEN | docker login --username $DOCKERHUB_USERNAME --password-stdin
       - echo Downloading source...
       - aws s3 cp s3://$SOURCE_BUCKET/$SOURCE_KEY source.tar.gz
       - mkdir agent && tar -xzf source.tar.gz -C agent

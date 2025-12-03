@@ -91,8 +91,17 @@ resource "aws_iam_role_policy" "codebuild_policy" {
         ]
         # Explicitly allowing access to the agent sources bucket (created in s3.tf)
         Resource = [
-           "arn:aws:s3:::${var.project_name}-${var.environment}-agent-sources",
-           "arn:aws:s3:::${var.project_name}-${var.environment}-agent-sources/*"
+          "arn:aws:s3:::${var.project_name}-${var.environment}-agent-sources",
+          "arn:aws:s3:::${var.project_name}-${var.environment}-agent-sources/*"
+        ]
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "secretsmanager:GetSecretValue"
+        ]
+        Resource = [
+          "arn:aws:secretsmanager:*:*:${var.project_name}/${var.environment}/dockerhub/*"
         ]
       },
       {
