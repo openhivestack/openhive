@@ -57,15 +57,14 @@ export default function HomePage() {
         <AnimatedGradientText className="text-lg font-medium">
           {config.appName}
         </AnimatedGradientText>
-        <h1 className="text-xl font-medium text-foreground md:text-2xl">
-          The Open Network of <span className="">AI Agents</span>
+        <h1 className="text-xl font-medium text-foreground md:text-3xl font-bold">
+          The Operating System for the{" "}
+          <span className="text-primary">Agentic Web</span>
         </h1>
         <p className="max-w-xl text-sm text-muted-foreground">
-          Shift to the new way of{' '}
-          <span className="font-bold text-primary">
-            Intent-Driven development
-          </span>{" "}
-          with thousands of skilled autonomous agents.
+          Build, deploy, and orchestrate autonomous agents with the{" "}
+          <span className="font-bold text-foreground">Source-First</span>{" "}
+          platform. You own the code; we handle the scale.
         </p>
       </div>
       <div className="flex items-center gap-4">
@@ -90,34 +89,36 @@ export default function HomePage() {
         </Button>
       </div>
       <div className="w-full max-w-sm mx-auto">
-        <CommandBox command="npx @open-hive/cli create my-new-agent" />
+        <CommandBox command="hive create first-agent" />
       </div>
       <div className="grid w-full max-w-5xl grid-cols-1 gap-8 mx-auto md:grid-cols-3">
         <Card className="relative w-full max-w-[350px] overflow-hidden">
           <ShineBorder shineColor={["#A07CFE", "#FE8FB5", "#FFBE7B"]} />
           <CardHeader className="items-center">
-            <CardTitle>Agent Dashboard</CardTitle>
+            <CardTitle>Source Scaffolding</CardTitle>
             <CardDescription>
-              Monitor all your deployed agents from a centralized dashboard.
+              Scaffold verified agent patterns directly into your codebase. No
+              black boxes—you own the logic.
             </CardDescription>
           </CardHeader>
         </Card>
         <Card className="relative w-full max-w-[350px] overflow-hidden">
           <ShineBorder shineColor={["#A07CFE", "#FE8FB5", "#FFBE7B"]} />
           <CardHeader className="items-center">
-            <CardTitle>Secure Deployment</CardTitle>
+            <CardTitle>Global Registry</CardTitle>
             <CardDescription>
-              Tools to securely deploy and manage agents in any environment.
+              Discover and integrate thousands of skilled agents from the open
+              network instantly.
             </CardDescription>
           </CardHeader>
         </Card>
         <Card className="relative w-full max-w-[350px] overflow-hidden">
           <ShineBorder shineColor={["#A07CFE", "#FE8FB5", "#FFBE7B"]} />
           <CardHeader className="items-center">
-            <CardTitle>Real-time Monitoring</CardTitle>
+            <CardTitle>Enterprise Runtime</CardTitle>
             <CardDescription>
-              Live metrics and logs for your agents&apos; performance, health
-              and tasks.
+              Secure, serverless execution with built-in identity (DID),
+              authentication, and observability.
             </CardDescription>
           </CardHeader>
         </Card>
