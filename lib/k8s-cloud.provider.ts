@@ -77,14 +77,17 @@ export class K8sCloudProvider implements CloudProvider {
     const safeAgentId = agentId.toLowerCase().replace(/[^a-z0-9-]/g, "-");
 
     // Determine the internal S3 endpoint for Kaniko running inside the cluster
-    const internalMinioEndpoint = "http://minio.openhive.svc:9000";
+    const internalMinioEndpoint =
+      process.env.K8S_MINIO_ENDPOINT || "http://minio.openhive.svc:9000";
 
     // Kaniko (inside cluster) pushes to the Service DNS
-    const registryPushHost = "openhive-registry:5000";
+    const registryPushHost =
+      process.env.K8S_REGISTRY_URL || "openhive-registry:5000";
 
     // Kubelet (on node) pulls from localhost NodePort (Minikube standard)
     // This assumes the registry service is NodePort 30500 as defined in values.yaml
-    const registryPullHost = "localhost:30500";
+    const registryPullHost =
+      process.env.K8S_REGISTRY_PULL_URL || "localhost:30500";
 
     const job = {
       apiVersion: "batch/v1",

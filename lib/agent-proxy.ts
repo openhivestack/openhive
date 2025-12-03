@@ -95,23 +95,32 @@ export async function handleAgentRequest(
 
   // 6. Proxy Request
   try {
-    const headers = new Headers(req.headers);
+    const requestHeaders: Record<string, string> = {};
+    req.headers.forEach((value, key) => {
+      // Skip headers we want to control or exclude
+      if (
+        key === "host" ||
+        key === "connection" ||
+        key === "content-length" ||
+        key === "transfer-encoding"
+      ) {
+        return;
+      }
+      requestHeaders[key] = value;
+    });
 
-    // Strip host to avoid TLS issues
-    headers.delete("host");
-
-    // Add Internal Auth Header required by the Gateway Service
+    // Add Internal Auth Headers
     if (process.env.GATEWAY_SECRET) {
-      headers.set("x-openhive-gateway-secret", process.env.GATEWAY_SECRET);
+      requestHeaders["x-openhive-gateway-secret"] = process.env.GATEWAY_SECRET;
     }
+    requestHeaders["x-openhive-agent-port"] = "4000";
+    requestHeaders["X-OpenHive-User-Id"] = auth.user.id;
+    requestHeaders["X-OpenHive-User-Email"] = auth.user.email;
 
-    // Send the agent port to the Gateway (if applicable)
-    // This allows the Gateway to dynamically route to the correct internal port
-    headers.set("x-openhive-agent-port", "4000");
-
-    // Forward User Context
-    headers.set("X-OpenHive-User-Id", auth.user.id);
-    headers.set("X-OpenHive-User-Email", auth.user.email);
+    console.log(
+      `[AgentProxy] Outgoing Headers to ${targetUrl}:`,
+      JSON.stringify(requestHeaders, null, 2)
+    );
 
     // Attempt to inspect body for Task ID if JSON
     let body: any = req.body;
@@ -141,14 +150,59 @@ export async function handleAgentRequest(
 
     const response = await fetch(targetUrl, {
       method: req.method,
-      headers,
+      headers: requestHeaders,
       body: body,
       signal: req.signal,
       duplex: "half",
     } as any);
 
+    console.log(
+      `[AgentProxy] Response from ${targetUrl}: ${response.status} ${response.statusText}`
+    );
+    console.log(
+      `[AgentProxy] Response Content-Type: ${response.headers.get(
+        "content-type"
+      )}`
+    );
+
+    // If JSON, let's peek at it for debugging purposes if it's not a stream
+    const responseContentType = response.headers.get("content-type") || "";
+
+    if (
+      responseContentType.includes("application/json") &&
+      !responseContentType.includes("text/event-stream")
+    ) {
+      try {
+        const clone = response.clone();
+        const text = await clone.text();
+        console.log(
+          `[AgentProxy] Response Body Preview: ${text.slice(0, 500)}`
+        );
+      } catch (_) {
+        console.log("[AgentProxy] Could not read response body preview.");
+      }
+    }
+
     // 7. Return Response & Log Metrics
     const responseHeaders = new Headers(response.headers);
+
+    // Clean up headers that interfere with Next.js / Proxying
+    responseHeaders.delete("content-encoding");
+    responseHeaders.delete("content-length");
+    responseHeaders.delete("transfer-encoding");
+    responseHeaders.delete("connection");
+
+    // Ensure SSE headers are correct if applicable
+    if (
+      responseContentType.includes("text/event-stream") ||
+      requestHeaders["accept"] === "text/event-stream"
+    ) {
+      if (responseContentType.includes("text/event-stream")) {
+        responseHeaders.set("Cache-Control", "no-cache, no-transform");
+        responseHeaders.set("Connection", "keep-alive");
+        responseHeaders.set("X-Accel-Buffering", "no"); // Prevent buffering by Nginx/proxies
+      }
+    }
 
     const durationMs = Date.now() - start;
     const status = response.ok ? "completed" : "failed";

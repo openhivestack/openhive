@@ -44,40 +44,60 @@ app.use((req, res, next) => {
   next();
 });
 
-// Dynamic Proxy Logic
-// Route format: /:agentName/api/...
-app.use('/:agentName', (req, res, next) => {
-  const agentName = req.params.agentName;
-  const namespace = process.env.CLOUD_MAP_NAMESPACE || 'openhive.local';
-  
-  // Target internal Cloud Map DNS
-  // Agents are at http://[agentName].[namespace]:PORT
-  // Port is determined by the x-openhive-agent-port header (default 4000)
-  const agentPort = req.headers['x-openhive-agent-port'] || 4000;
-  const target = `http://${agentName}.${namespace}:${agentPort}`;
+    // Dynamic Proxy Logic
+    // Route format: /:agentName/api/...
+    app.use('/:agentName', (req, res, next) => {
+      const agentName = req.params.agentName;
+      const namespace = process.env.CLOUD_MAP_NAMESPACE || 'openhive.local';
+      
+      // Target internal Cloud Map DNS
+      // Agents are at http://[agentName].[namespace]:PORT
+      // Port is determined by the x-openhive-agent-port header (default 4000)
+      const agentPort = req.headers['x-openhive-agent-port'] || 4000;
+      const target = `http://${agentName}.${namespace}:${agentPort}`;
 
-  console.log(`[${req.id}] Proxying request for agent ${agentName} to ${target}${req.url}`);
+      console.log(`[${req.id}] Proxying request for agent ${agentName} to ${target}${req.url}`);
 
-  createProxyMiddleware({
-    target: target,
-    changeOrigin: true,
-    pathRewrite: {
-      [`^/${agentName}`]: '', // Remove agent name from path when forwarding
-    },
-    onProxyReq: (proxyReq, req, res) => {
-      // Optional: Add headers if needed by agents
-      proxyReq.setHeader('X-Forwarded-For', req.ip);
-      proxyReq.setHeader('X-Request-ID', req.id);
-    },
-    onProxyRes: (proxyRes, req, res) => {
-      console.log(`[${req.id}] Received response from agent ${agentName}: ${proxyRes.statusCode}`);
-    },
-    onError: (err, req, res) => {
-      console.error(`[${req.id}] Gateway error for ${agentName}:`, err.message);
-      res.status(502).send('Bad Gateway: Could not reach agent');
-    }
-  })(req, res, next);
-});
+      createProxyMiddleware({
+        target: target,
+        changeOrigin: true,
+        pathRewrite: {
+          [`^/${agentName}`]: '', // Remove agent name from path when forwarding
+        },
+        // Increase buffer size for larger requests if needed
+        // ws: true, // Enable WebSocket support if needed
+        onProxyReq: (proxyReq, req, res) => {
+          // Optional: Add headers if needed by agents
+          proxyReq.setHeader('X-Forwarded-For', req.ip);
+          proxyReq.setHeader('X-Request-ID', req.id);
+          
+          // IMPORTANT: Ensure we copy the accept header if present, 
+          // although http-proxy-middleware should do this by default.
+          if (req.headers.accept) {
+             proxyReq.setHeader('Accept', req.headers.accept);
+          }
+        },
+        onProxyRes: (proxyRes, req, res) => {
+           // If the agent returns text/event-stream, we must ensure 
+           // the gateway doesn't buffer it or compress it in a way that breaks SSE.
+           const contentType = proxyRes.headers['content-type'];
+           if (contentType && contentType.includes('text/event-stream')) {
+             proxyRes.headers['cache-control'] = 'no-cache, no-transform';
+             proxyRes.headers['connection'] = 'keep-alive';
+             proxyRes.headers['x-accel-buffering'] = 'no';
+             
+             // Remove compression for SSE to avoid buffering
+             delete proxyRes.headers['content-encoding'];
+           }
+
+           console.log(`[${req.id}] Received response from agent ${agentName}: ${proxyRes.statusCode}`);
+        },
+        onError: (err, req, res) => {
+          console.error(`[${req.id}] Gateway error for ${agentName}:`, err.message);
+          res.status(502).send('Bad Gateway: Could not reach agent');
+        }
+      })(req, res, next);
+    });
 
 const server = app.listen(PORT, () => {
   console.log(`OpenHive Gateway Service running on port ${PORT}`);

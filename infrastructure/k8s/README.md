@@ -7,7 +7,7 @@ This directory contains the Helm chart and configuration for deploying the full 
 When deployed in `k8s` mode (`CLOUD_PROVIDER=k8s`), OpenHive orchestrates agents natively using Kubernetes resources:
 
 - **Platform**: The core OpenHive Next.js application running as a Deployment.
-- **Agent Storage**: Source code is stored either in the bundled **MinIO** instance (S3 compatible) or on a **Persistent Volume** (Local Storage).
+- **Agent Storage**: Source code is stored in the bundled **MinIO** instance (S3 compatible) or an external S3 provider.
 - **Image Building**: Source code is built into Docker images using **Kaniko** jobs inside the cluster (daemonless build).
 - **Registry**: Built images are pushed to the bundled private **Docker Registry** (accessible via NodePort 30500 locally or ClusterIP in prod).
 - **Execution**: Agents are deployed as standard **Kubernetes Deployments** and **Services**, managed dynamically by the OpenHive Platform.
@@ -87,7 +87,7 @@ For production environments (AWS EKS, Google GKE, Azure AKS, or On-Premise), fol
 
 ### 1. Infrastructure Requirements
 
-- **Storage Class**: Ensure a default `StorageClass` is defined for Persistent Volume Claims (PVCs) for Postgres and MinIO (or Local Storage).
+- **Storage Class**: Ensure a default `StorageClass` is defined for Persistent Volume Claims (PVCs) for Postgres and MinIO.
 - **Ingress Controller**: An Ingress controller (e.g., NGINX, AWS ALB) is required to expose the platform.
 - **Cert Manager**: (Optional) For automatic SSL/TLS certificates.
 
@@ -127,46 +127,44 @@ secrets:
   githubClientSecret: "YOUR_GITHUB_SECRET"
 
 # Registry Configuration
-# In production, we typically use ClusterIP instead of NodePort
 registry:
   service:
     type: ClusterIP
+  # The URL that Kubernetes nodes use to pull images.
+  # In production, this is typically the Service DNS (if nodes can resolve it) or an external URL.
+  # e.g., "openhive-registry.openhive.svc.cluster.local:5000"
+  pullUrl: "openhive-registry.openhive.svc.cluster.local:5000"
 ```
 
 ### 3. Storage Configuration
 
-You can choose between S3-compatible storage (default) or Local Storage (PVC).
+You can choose between using the bundled MinIO or an external S3 provider.
 
-**Option A: S3 / MinIO (Default)**
+**Option A: Bundled MinIO (Default)**
+
+```yaml
+minio:
+  enabled: true
+```
+
+**Option B: External S3**
 
 ```yaml
 storage:
   type: "s3"
 
 minio:
-  enabled: true # Set to false if using external S3
-  # auth: ...
-```
-
-**Option B: Local Storage**
-
-Useful for air-gapped environments without object storage.
-
-```yaml
-storage:
-  type: "local"
-  local:
-    pvc:
-      enabled: true
-      size: "20Gi"
-
-minio:
-  enabled: false # Not required
+  enabled: false
+  endpoint: "https://s3.amazonaws.com"
+  publicEndpoint: "https://s3.amazonaws.com" # For pre-signed URLs
+  auth:
+    rootUser: "ACCESS_KEY"
+    rootPassword: "SECRET_KEY"
 ```
 
 ### 4. External Dependencies (Optional)
 
-If you already have Postgres or an Object Store, you can disable the bundled versions.
+If you already have Postgres, you can disable the bundled version.
 
 ```yaml
 # Use external Postgres
@@ -177,15 +175,6 @@ postgresql:
   auth:
     username: "openhive"
     password: "db-password"
-
-# Use external S3/MinIO
-minio:
-  enabled: false
-  endpoint: "https://s3.amazonaws.com"
-  publicEndpoint: "https://s3.amazonaws.com" # For pre-signed URLs
-  auth:
-    rootUser: "ACCESS_KEY"
-    rootPassword: "SECRET_KEY"
 ```
 
 ### 5. Install via Helm
@@ -201,17 +190,17 @@ helm upgrade --install openhive ./infrastructure/k8s \
 
 ## ⚙️ Configuration Reference
 
-| Parameter                   | Description                                                  | Default             |
-| --------------------------- | ------------------------------------------------------------ | ------------------- |
-| `cloudProvider`             | Backend mode (`k8s` for this chart).                         | `k8s`               |
-| `storage.type`              | Storage backend: `s3` or `local`.                            | `s3`                |
-| `storage.local.pvc.enabled` | Create a PVC for local storage (if type is `local`).         | `false`             |
-| `postgresql.enabled`        | Deploy bundled Postgres.                                     | `true`              |
-| `postgresql.host`           | Hostname of Postgres (if enabled=false).                     | `postgresql`        |
-| `minio.enabled`             | Deploy bundled MinIO.                                        | `true`              |
-| `minio.endpoint`            | Internal S3 endpoint.                                        | `http://minio:9000` |
-| `registry.enabled`          | Deploy bundled Docker Registry.                              | `true`              |
-| `secrets.gatewaySecret`     | **Critical**: Shared secret for proxying requests to agents. | `change-me...`      |
+| Parameter               | Description                                                  | Default             |
+| ----------------------- | ------------------------------------------------------------ | ------------------- |
+| `cloudProvider`         | Backend mode (`k8s` for this chart).                         | `k8s`               |
+| `storage.type`          | Storage backend: `s3`.                                       | `s3`                |
+| `postgresql.enabled`    | Deploy bundled Postgres.                                     | `true`              |
+| `postgresql.host`       | Hostname of Postgres (if enabled=false).                     | `postgresql`        |
+| `minio.enabled`         | Deploy bundled MinIO.                                        | `true`              |
+| `minio.endpoint`        | Internal S3 endpoint.                                        | `http://minio:9000` |
+| `registry.enabled`      | Deploy bundled Docker Registry.                              | `true`              |
+| `registry.pullUrl`      | URL used by Kubelet to pull images.                          | `localhost:30500`   |
+| `secrets.gatewaySecret` | **Critical**: Shared secret for proxying requests to agents. | `change-me...`      |
 
 ## 🔧 Troubleshooting
 
@@ -224,7 +213,9 @@ kubectl create secret docker-registry regcred --docker-server=... --docker-usern
 
 **Agent stuck in `ImagePullBackOff`:**
 
-1. Check if the registry is reachable from the node. In Minikube, we use `localhost:30500`. In production, this should be the ClusterIP DNS (e.g., `openhive-registry.openhive.svc.cluster.local:5000`) and you may need to configure your nodes to trust the insecure registry or set up proper TLS.
+1. Check if the registry is reachable from the node using the configured `registry.pullUrl`.
+   - In **Minikube**, we use `localhost:30500`.
+   - In **Production**, this should be the ClusterIP DNS (e.g., `openhive-registry.openhive.svc.cluster.local:5000`). Note that if your registry is insecure (HTTP), you must configure your container runtime (containerd/dockerd) to trust this insecure registry.
 2. Check `kubectl describe pod agent-name...` for specific error messages.
 
 **CLI Exec failing with 500:**

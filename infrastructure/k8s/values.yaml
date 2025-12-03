@@ -116,3 +116,8 @@ registry:
   service:
     type: NodePort # Easier for Minikube access
     nodePort: 30500
+
+  # URL used by the Kubelet/Node to pull images.
+  # For Minikube: localhost:30500
+  # For Production: <registry-service-dns>:5000 or <external-registry-url>
+  pullUrl: "localhost:30500"

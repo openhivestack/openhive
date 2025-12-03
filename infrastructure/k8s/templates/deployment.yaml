@@ -53,7 +53,7 @@ spec:
             # For Minikube with NodePort, this corresponds to localhost on the node.
             # Since the registry is insecure (HTTP), using localhost allows the Kubelet to pull without TLS config.
             - name: K8S_REGISTRY_PULL_URL
-              value: "localhost:30500"
+              value: {{ .Values.registry.pullUrl | default "localhost:30500" | quote }}
 
             - name: STORAGE_TYPE
               value: {{ .Values.storage.type | quote }}
