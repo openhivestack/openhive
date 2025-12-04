@@ -1,0 +1,151 @@
+---
+title: Building Agents
+description: A guide to implementing A2A-compliant agents with real-world patterns.
+---
+
+import { FileCode, Box, Workflow, Layers } from 'lucide-react';
+
+Building a production-grade agent involves two distinct parts:
+1.  **Metadata**: Defining who the agent is and what it can do (via `.agent-card.json`).
+2.  **Implementation**: Writing the code that actually executes the tasks.
+
+<Callout type="tip">
+  You rarely need to set this up manually. Running `hive create <name>` or `hive add <agent>` will scaffold all of this for you.
+</Callout>
+
+## 1. The Agent Card (Metadata)
+
+In OpenHive, the source of truth for your agent's capabilities is the `.agent-card.json` file in your project root.
+
+This file is what the OpenHive CLI reads when you run `hive publish`. It decouples your agent's *definition* from its *implementation language*.
+
+```json title=".agent-card.json"
+{
+  "name": "research-bot",
+  "description": "Summarizes URLs and PDF documents.",
+  "version": "1.0.0",
+  "protocolVersion": "0.3.0",
+  "url": "http://localhost:3000",
+  "skills": [
+    {
+      "id": "summarize",
+      "name": "Summarize Content",
+      "description": "Takes a URL and returns a short summary.",
+      "input": { "type": "string", "format": "url" }
+    }
+  ]
+}
+```
+
+## 2. Implementation (Node.js)
+
+For Node.js agents, you use the **official Google A2A SDK** (`@a2a-js/sdk`) to handle the protocol mechanics.
+
+### The Executor
+
+You implement the `AgentExecutor` interface. This class receives the task context and the event bus.
+
+```typescript
+import { AgentExecutor, RequestContext, ExecutionEventBus } from "@a2a-js/sdk/server";
+
+export class ResearchExecutor implements AgentExecutor {
+  
+  async execute(ctx: RequestContext, bus: ExecutionEventBus) {
+    const { userMessage } = ctx;
+    
+    // 1. Parse intent (simple example)
+    const url = userMessage.parts[0].text;
+    
+    bus.publish({
+      kind: "status-update",
+      taskId: ctx.taskId,
+      contextId: ctx.contextId,
+      status: { state: "working", timestamp: new Date().toISOString() },
+      final: false
+    });
+
+    // 2. Perform logic
+    const summary = await this.summarizeUrl(url);
+
+    // 3. Send response
+    bus.publish({
+      kind: "message",
+      messageId: crypto.randomUUID(),
+      role: "agent",
+      contextId: ctx.contextId,
+      parts: [{ kind: "text", text: summary }]
+    });
+
+    bus.finished();
+  }
+
+  private async summarizeUrl(url: string) {
+    return "This is a simulated summary.";
+  }
+  
+  async cancelTask() {}
+}
+```
+
+## 3. Implementation (Python)
+
+For Python, the pattern is similar. Your logic handles the incoming task and emits events.
+
+```python
+# main.py (Conceptual Example)
+
+async def execute_task(context, event_bus):
+    message = context.message
+    
+    # 1. Acknowledge
+    await event_bus.publish({
+        "kind": "status-update",
+        "taskId": context.task_id,
+        "contextId": context.context_id,
+        "status": {"state": "working", "timestamp": datetime.utcnow().isoformat()},
+        "final": False
+    })
+    
+    # 2. Work
+    result = f"Processed: {message.text}"
+    
+    # 3. Respond
+    await event_bus.publish({
+        "kind": "message",
+        "messageId": str(uuid.uuid4()),
+        "role": "agent",
+        "contextId": context.context_id,
+        "parts": [{"kind": "text", "text": result}]
+    })
+    
+    await event_bus.finished()
+```
+
+## 4. Orchestration
+
+To call *other* agents, you use the OpenHive SDK to find them, and an A2A client to talk to them.
+
+```typescript
+import { OpenHive } from "@open-hive/sdk";
+import { A2AClient } from "@a2a-js/sdk/client";
+
+// 1. Discovery (using OpenHive SDK)
+const registry = new OpenHive();
+const [pdfAgent] = await registry.search("skill:pdf-analysis");
+
+if (pdfAgent) {
+  // 2. Connection (using A2A SDK)
+  const client = await A2AClient.fromCardUrl(pdfAgent.url);
+  
+  const result = await client.sendMessage({
+    message: {
+        messageId: crypto.randomUUID(),
+        role: "user",
+        parts: [{ kind: "text", text: "Analyze this..." }],
+        kind: "message"
+    }
+  });
+  
+  console.log("Result:", result);
+}
+```

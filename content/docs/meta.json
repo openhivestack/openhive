@@ -1,0 +1,26 @@
+{
+  "title": "OpenHive Documentation",
+  "root": true,
+  "pages": [
+    "index",
+    "guides/quickstart",
+    "guides/building-agents",
+    "guides/testing",
+    "guides/deployment",
+    "---Concepts---",
+    "concepts/agents",
+    "concepts/a2a-protocol",
+    "concepts/registry",
+    "concepts/security",
+    "---Tutorials---",
+    "tutorials/first-agent",
+    "tutorials/chat-agent",
+    "tutorials/task-automation",
+    "tutorials/orchestration",
+    "---API Reference---",
+    "api-reference/cli",
+    "---Resources---",
+    "resources/faq",
+    "resources/contributing"
+  ]
+}

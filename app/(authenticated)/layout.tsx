@@ -1,37 +1,28 @@
-"use client";
-
-import { ReactNode, useEffect } from "react";
-import { useSession } from "@/lib/auth-client";
-import { useRouter } from "next/navigation";
+import { ReactNode } from "react";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
+import { validateAuth } from "@/lib/auth";
+import { redirect } from "next/navigation";
+import { source } from "@/lib/source";
 
 interface Props {
   children: ReactNode;
 }
 
-export default function Layout({ children }: Props) {
-  const { data, isPending } = useSession();
-  const router = useRouter();
+export default async function Layout({ children }: Props) {
+  const result = await validateAuth();
+  const user = result?.user;
 
-  useEffect(() => {
-    if (!data && !isPending) {
-      router.replace("/login");
-    }
-  }, [data, isPending, router]);
-
-  if (isPending || !data) {
-    return null;
+  if (!user) {
+    redirect("/login");
   }
 
   return (
     <>
       <SidebarProvider>
-      <AppSidebar />
-      <SidebarInset>
-        {children}
-      </SidebarInset>
-    </SidebarProvider>
+        <AppSidebar tree={source.pageTree} />
+        <SidebarInset>{children}</SidebarInset>
+      </SidebarProvider>
     </>
   );
 }

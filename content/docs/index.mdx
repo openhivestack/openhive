@@ -1,0 +1,92 @@
+---
+title: Introduction
+description: The Operating System for the Agentic Web
+---
+
+import { Cpu, Network, Cloud, Terminal, Shield, Zap, Box } from "lucide-react";
+
+OpenHive is the foundational infrastructure for the next generation of the internet: the **Agentic Web**. We provide the protocols, runtime, and tooling required to build, deploy, and orchestrate autonomous AI agents at scale.
+
+In the same way HTTP enabled the World Wide Web, OpenHive enables a global network of autonomous agents to discover, communicate, and collaborate—transforming isolated AI models into a cohesive economic engine.
+
+<Callout type="info" title="The Shift to Intent-Driven Development">
+  We are transitioning from writing code line-by-line to **orchestrating
+  outcomes**. OpenHive is built for this future, where developers define
+  *intent* and agents handle the execution.
+</Callout>
+
+## OpenHive Architecture
+
+OpenHive is a comprehensive ecosystem designed to solve the fragmentation in AI development.
+
+<Cards>
+  <Card
+    icon={<Terminal className="text-purple-500" />}
+    title="Source Scaffolding Model"
+    href="/docs/api-reference/cli"
+    className="border border-purple-500/20"
+  >
+    **You own the code.** The OpenHive CLI scaffolds agent patterns directly into your codebase, similar to Shadcn UI. No black boxes.
+  </Card>
+  <Card
+    icon={<Network className="text-green-500" />}
+    title="A2A Protocol"
+    href="/docs/concepts/a2a-protocol"
+    className="border border-green-500/20"
+  >
+    Leverage the industry-standard **Agent-to-Agent Protocol** for secure,
+    verifiable, and multimodal communication between autonomous actors.
+  </Card>
+  <Card icon={<Cloud className="text-blue-500" />} title="OpenHive Cloud" href="/docs/guides/deployment" className="border border-blue-500/20">
+    **Source-to-Cloud Deployment.** Push your source code, and we handle the containerization, scaling, and execution in a serverless environment.
+  </Card>
+  <Card
+    icon={<Box className="text-orange-500" />}
+    title="OpenHive Registry"
+    href="/docs/concepts/registry"
+    className="border border-orange-500/20"
+  >
+    A registry of best-practice agent templates and skills. Discover, install, and modify agents with a single command.
+  </Card>
+</Cards>
+
+## Why Build on OpenHive?
+
+The next great leap in computing is blocked by a lack of a universal language. Agents today are siloed. OpenHive breaks down these walls.
+
+### 1. Source-First Development
+Stop fighting with rigid frameworks. With OpenHive, you start with high-quality, best-practice source code that you can inspect, modify, and extend.
+- **`hive add`**: Scaffold agents instantly.
+- **Fully Customizable**: Swap models, add logging, or change logic directly in your IDE.
+
+### 2. Agent Interoperability
+Your agents shouldn't live in a vacuum. Using the **A2A Protocol**, OpenHive agents can:
+- **Discover** other agents in the registry.
+- **Negotiate** tasks and capabilities dynamically.
+- **Transact** and exchange artifacts securely.
+
+### 3. Zero-Friction Deployment
+From local host to global scale in one command.
+- **`hive publish`**: We bundle your source, build the container, and deploy it globally.
+- **Identity & Auth**: Built-in decentralized identity (DID) and secure authentication.
+- **Observability**: Deep tracing and logging for every agent interaction.
+
+## Start Building
+
+Ready to join the agentic economy? Choose your path below.
+
+<Cards>
+  <Card title="Quickstart Guide" href="/docs/guides/quickstart">
+    Scaffold and deploy your first agent in under 5 minutes.
+  </Card>
+  <Card title="Core Concepts" href="/docs/concepts/agents">
+    Understand the architecture of Agents, Tasks, and the Hive.
+  </Card>
+  <Card
+    title="Browse the Marketplace"
+    href="https://app.openhive.ai/marketplace"
+    external
+  >
+    Discover public agents and capabilities you can integrate today.
+  </Card>
+</Cards>

@@ -43,8 +43,9 @@ next-env.d.ts
 # Temporary files
 tmp/
 
-# Cursor
+# AI Rules
 .cursor
+.agent
 
 # Local Terraform state and provider plugins
 .terraform/
@@ -57,3 +58,8 @@ crash.*.log
 
 # Exclude secrets and local variable definitions
 *.tfvars
+
+# generated content
+.contentlayer
+.content-collections
+.source

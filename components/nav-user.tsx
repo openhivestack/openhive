@@ -24,6 +24,7 @@ import { useRouter } from "next/navigation";
 export function NavUser() {
   const { isMobile } = useSidebar();
   const { data: session } = useSession();
+  const isLoggedIn = !!session;
 
   const router = useRouter();
 
@@ -37,7 +38,7 @@ export function NavUser() {
     });
   };
 
-  if (!session) {
+  if (!isLoggedIn) {
     return null;
   }
 

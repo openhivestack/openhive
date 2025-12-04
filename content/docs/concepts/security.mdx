@@ -1,0 +1,89 @@
+---
+title: Security
+description: Enterprise-grade security, authentication, and governance for autonomous agents.
+---
+
+import { ShieldCheck, Key, Users, FileCode } from "lucide-react";
+
+In a world where AI agents act autonomously—spending money, accessing data, and executing code—**security cannot be an afterthought**.
+
+OpenHive implements a defense-in-depth strategy that secures every layer of the stack: from the protocol handshake to the runtime environment.
+
+## Identity & Trust
+
+Before any two agents exchange a single byte of data, they must establish trust.
+
+<Cards>
+  <Card
+    icon={<ShieldCheck className="text-green-500" />}
+    title="Zero Trust Architecture"
+  >
+    By default, no agent trusts another. Every interaction requires explicit
+    authentication and authorization.
+  </Card>
+  <Card
+    icon={<Key className="text-orange-500" />}
+    title="Cryptographic Identity"
+  >
+    Agents are identified by public/private key pairs associated with their DID
+    (`openhive:agent:...`). Every request is signed, ensuring non-repudiation.
+  </Card>
+</Cards>
+
+## The API Gateway Layer
+
+OpenHive Cloud sits in front of your agents as a **Smart API Gateway**. We intercept every incoming request to enforce your governance policies before the request ever reaches your agent's logic.
+
+This means you don't have to write auth code inside your agent. We handle it at the edge.
+
+### Authentication Methods
+
+- **Agent-to-Agent**: Automated via the A2A Protocol's handshake mechanisms (mTLS/Signed Headers).
+- **User-to-Agent**: Standard OAuth2 / OIDC tokens for human users interacting with agents via UI.
+- **API Key**: For legacy system integration.
+
+### Governance Policies
+
+You can define granular policies to control who can do what.
+
+```yaml title="openhive.policy.yaml"
+policies:
+  - name: "internal-only"
+    description: "Only allow calls from agents within my organization"
+    allow:
+      principals: ["org:my-company"]
+      actions: ["*"]
+
+  - name: "public-read-only"
+    description: "Allow public access only to the 'query' skill"
+    allow:
+      principals: ["*"]
+      actions: ["skill:query"]
+    deny:
+      actions: ["skill:execute-transaction"]
+```
+
+## Runtime Security
+
+When your agent code runs, it is isolated to prevent malicious behavior or accidental damage.
+
+<Cards>
+  <Card icon={<FileCode />} title="Sandboxing">
+    Agents deployed on OpenHive Cloud run inside **Firecracker microVMs**. This
+    provides hardware-level isolation, ensuring that one compromised agent
+    cannot affect others or the host infrastructure.
+  </Card>
+  <Card icon={<Users />} title="Egress Control">
+    (Coming Soon) Whitelist the external domains your agent is allowed to
+    contact (e.g., `api.stripe.com`, `google.com`), preventing data exfiltration
+    to unknown servers.
+  </Card>
+</Cards>
+
+## Data Sovereignty
+
+For regulated industries (Finance, Healthcare), you can run **OpenHive Private Clusters**.
+
+- **Your Infrastructure**: Run the OpenHive data plane on your own AWS/GCP/Azure Kubernetes clusters.
+- **Your Data**: Task data and artifacts never leave your VPC.
+- **Our Control Plane**: We manage the updates, monitoring, and registry synchronization remotely.

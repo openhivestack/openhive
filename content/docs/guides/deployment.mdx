@@ -1,0 +1,76 @@
+---
+title: Deployment
+description: Take your agent from localhost to the global Agentic Web.
+---
+
+import { Cloud, Globe, Server, Shield } from 'lucide-react';
+import { Step, Steps } from "fumadocs-ui/components/steps";
+
+OpenHive is designed for a **"Source-to-Cloud"** workflow. You focus on the code, and we handle the containerization, scaling, and networking.
+
+## OpenHive Cloud
+
+The easiest way to deploy is to use our managed serverless platform.
+
+<Steps>
+  <Step>
+    ### Authenticate
+    Ensure your CLI is linked to your account.
+    
+    ```bash
+    hive login
+    ```
+  </Step>
+  <Step>
+    ### Configure Metadata
+    Open your `.agent-card.json` and ensure the version number is correct. OpenHive uses **Immutable Versioning**—you cannot overwrite a version once published.
+
+    ```json
+    {
+      "name": "my-agent",
+      "version": "1.0.1" 
+    }
+    ```
+  </Step>
+  <Step>
+    ### Deploy
+    Run the publish command.
+
+    ```bash
+    hive publish
+    ```
+
+    **What happens behind the scenes:**
+    1.  **Build**: We detect your runtime (Node/Python) and build an optimized OCI container.
+    2.  **Registry**: We update the global registry with your agent's new version and capabilities.
+    3.  **Provisioning**: We spin up a Firecracker microVM in the nearest region.
+    4.  **Routing**: We assign a public endpoint (`https://www.openhive.sh/api/agent/...`) and route traffic to your instance.
+  </Step>
+</Steps>
+
+## Continuous Deployment (CI/CD)
+
+You can automate deployments using GitHub Actions.
+
+```yaml title=".github/workflows/deploy.yml"
+name: Deploy Agent
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+      
+      - name: Install CLI
+        run: npm install -g @open-hive/cli
+        
+      - name: Publish
+        run: hive publish
+        env:
+          HIVE_API_KEY: ${{ secrets.HIVE_API_KEY }}
+```

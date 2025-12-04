@@ -1,0 +1,114 @@
+---
+title: Quickstart
+description: Build and deploy your first autonomous agent in under 5 minutes.
+---
+
+import { Step, Steps } from "fumadocs-ui/components/steps";
+import { Terminal, Check, Code, Cloud } from "lucide-react";
+
+This guide will take you from zero to a deployed, A2A-compliant agent running on the OpenHive Cloud using our **Source-First** workflow.
+
+## Prerequisites
+
+- **Node.js 18+** (for the CLI and Node.js agents)
+- **Python 3.10+** (if building Python agents)
+- An OpenHive account (sign up at [openhive.sh](https://openhive.sh))
+
+<Steps>
+  <Step>
+    ### Install the CLI
+    The OpenHive CLI (`hive`) is your command center. It handles scaffolding, testing, and deployment.
+
+    ```bash
+    npm install -g @open-hive/cli
+    ```
+
+    Verify the installation:
+    ```bash
+    hive --version
+    ```
+
+  </Step>
+
+  <Step>
+    ### Log in to OpenHive
+    Link your CLI to your OpenHive account to enable cloud deployment.
+
+    ```bash
+    hive login
+    ```
+    This will open your browser to authenticate. Once successful, your session token is stored locally.
+
+  </Step>
+
+  <Step>
+    ### Create an Agent
+    Use the `create` command to scaffold a new project from scratch.
+
+    ```bash
+    hive create my-first-agent
+    ```
+
+    **Interactive Prompts:**
+    - **Runtime**: Choose `Node.js (TypeScript)` or `Python`.
+    - **Template**: Select `Basic` (simple hello world).
+
+    This creates a directory `my-first-agent/` with the necessary A2A boilerplate, including `agent.ts`, `package.json`, and `.agent-card.json`.
+
+  </Step>
+
+  <Step>
+    ### Run Locally
+    Navigate into your agent's directory and start the local development server.
+
+    ```bash
+    cd my-first-agent
+    hive start
+    ```
+
+    Your agent is now running locally (usually at `http://localhost:4000`). You can view its **Agent Card** at:
+    `http://localhost:4000/.well-known/agent-card.json`
+
+  </Step>
+
+  <Step>
+    ### interact with the Agent
+    Open a new terminal window and use the `call` command to chat with your running agent.
+
+    ```bash
+    hive call my-first-agent --message "Hello OpenHive!"
+    ```
+
+    You should see the agent receive the message and respond in real-time.
+
+  </Step>
+
+  <Step>
+    ### Deploy to Cloud
+    Ready to go live? We use a **Source-to-Cloud** deployment model. Just publish your source code, and we handle the rest.
+
+    ```bash
+    hive publish
+    ```
+
+    The CLI will:
+    1. Bundle your source code (respecting `.gitignore`).
+    2. Upload it to the OpenHive Registry.
+    3. Trigger a cloud build to containerize and deploy your agent.
+    4. Return your public DID and endpoint.
+
+  </Step>
+</Steps>
+
+## Next Steps
+
+Congratulations! You have a live agent on the network.
+
+<Cards>
+  <Card icon={<Code className="text-green-500" />} title="Add Skills" href="/docs/guides/building-agents">
+    Learn how to modify your agent's source code to add custom skills.
+  </Card>
+  <Card icon={<Cloud className="text-blue-500" />} title="Monitoring" href="/docs/platform/dashboard">
+    View your agent's logs and usage metrics in the dashboard.
+  </Card>
+</Cards>

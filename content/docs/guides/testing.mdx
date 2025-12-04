@@ -1,0 +1,122 @@
+---
+title: Testing & Debugging
+description: Comprehensive guide to testing and debugging your OpenHive agents.
+---
+
+import { Terminal, Play, Bug, Network } from 'lucide-react';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+
+Building reliable autonomous agents requires rigorous testing. OpenHive provides a suite of tools to test your agents locally, simulate cloud environments, and interact with them via the CLI.
+
+## The `call` Command
+
+The primary way to interact with an agent is the `hive call` command. This universal client can talk to any A2A-compliant agent, whether it's running on your laptop via `hive start` or deployed to the OpenHive Cloud.
+
+### Basic Usage
+
+Send a simple text message to an agent:
+
+```bash
+hive call <agent> --message "Your prompt here"
+```
+
+**Examples:**
+
+1. **Remote Agent**: Pass the agent's name to resolve it from the registry.
+   ```bash
+   hive call weather-bot --message "What's the weather in Tokyo?"
+   ```
+
+2. **Local Agent**: Pass the local URL if you are running the agent yourself.
+   ```bash
+   hive call http://localhost:3000 --message "Hello local agent"
+   ```
+
+### Interactive Mode
+
+If you omit the `--message` flag, the CLI enters an interactive chat mode.
+
+```bash
+hive call weather-bot
+```
+
+## Testing Locally
+
+You don't need to deploy to the cloud to test your agent. The "Source-First" workflow allows you to run everything on your machine.
+
+<Steps>
+  <Step>
+    ### Start the Agent
+    Navigate to your agent's directory and run the development server.
+
+    ```bash
+    cd my-agent
+    hive start
+    ```
+    This will start your agent (typically on `http://localhost:3000`) and serve its `.well-known/agent-card.json`.
+  </Step>
+
+  <Step>
+    ### Interact
+    Open a new terminal window and use `hive call` to talk to your local instance.
+
+    ```bash
+    hive call http://localhost:3000
+    ```
+    You can now chat with your agent in real-time, see streaming responses, and verify task completion.
+  </Step>
+</Steps>
+
+## Testing Remote Agents
+
+You can also use the CLI to test agents deployed to the cloud or a private cluster.
+
+### OpenHive Cloud
+
+To test an agent on the public platform, simply login and run `call`.
+
+```bash
+hive login
+hive call weather-bot --message "What's the weather in Tokyo?"
+```
+
+### Private/Custom Registry
+
+If you are running a self-hosted OpenHive cluster, you can point the CLI to your custom registry via configuration or by using the direct URL of the agent.
+
+```bash
+hive call https://my-internal-agent.corp.com
+```
+
+## Debugging Tips
+
+<Cards>
+  <Card icon={<Network className="text-green-500" />} title="Inspect Network Traffic">
+    Agents communicate over standard HTTP. You can use tools like **Wireshark** or **Proxyman** to inspect the JSON payloads being sent to and from your agent's endpoint.
+  </Card>
+  <Card icon={<Bug className="text-red-500" />} title="Verbose Logging">
+    When running your agent locally with `hive start`, all logs are output to stdout. Look for `[A2A]` prefixes to see protocol-level events.
+  </Card>
+  <Card icon={<Play className="text-blue-500" />} title="Unit Testing">
+    Since OpenHive agents are just classes, you can write standard Jest (Node) or Pytest (Python) unit tests for your `AgentExecutor` logic without spinning up a server.
+  </Card>
+</Cards>
+
+### Unit Test Example (Node.js)
+
+```typescript
+import { MyExecutor } from './agent';
+
+test('MyExecutor replies correctly', async () => {
+  const executor = new MyExecutor();
+  const mockBus = { publish: jest.fn(), finished: jest.fn() };
+  
+  await executor.execute(mockContext, mockBus);
+  
+  expect(mockBus.publish).toHaveBeenCalledWith(
+    expect.objectContaining({
+      parts: [{ text: "Hello World" }]
+    })
+  );
+});
+```

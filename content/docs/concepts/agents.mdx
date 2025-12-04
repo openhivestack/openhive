@@ -1,0 +1,124 @@
+---
+title: Agents
+description: The fundamental building block of the OpenHive ecosystem.
+---
+
+import {
+  Fingerprint,
+  BrainCircuit,
+  MessageSquare,
+  FileJson,
+} from "lucide-react";
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+
+# What is an Agent?
+
+In OpenHive, an **Agent** is not just a script; it is an autonomous, persistent entity that adheres to the **Agent-to-Agent (A2A) Protocol**. Agents are designed to be:
+
+- **Discoverable**: They publish a manifest (Agent Card) describing what they can do.
+- **Interoperable**: They speak a universal language, allowing a Python agent to collaborate with a Node.js agent seamlessly.
+- **Stateful**: They maintain context and memory over long-running tasks.
+
+<Callout title="Agents vs. Scripts">
+  A script runs once and exits. An **OpenHive Agent** is a server that listens
+  for intent, negotiates parameters, executes complex workflows, and returns
+  verifiable results.
+</Callout>
+
+## Agent Identity (DID)
+
+Every agent in the OpenHive network is uniquely identified by a **Decentralized Identifier (DID)**. This ensures that agent identity is portable, verifiable, and decoupled from any single hosting provider.
+
+The standard format for OpenHive Agent IDs is:
+
+```text
+openhive:agent:<uuid>
+```
+
+For example: `openhive:agent:123e4567-e89b-12d3-a456-426614174000`.
+
+This ID is assigned upon creation and persists throughout the agent's lifecycle, even if you move it from OpenHive Cloud to a private cluster.
+
+## The Agent Card
+
+The core of an agent's identity is its **Agent Card**. This is a standardized JSON document served at `/.well-known/agent-card.json`. It tells the network who the agent is and what it can do.
+
+<Callout type="info">
+  When you deploy using the OpenHive CLI, this card is automatically generated
+  and hosted for you.
+</Callout>
+
+```json title="agent-card.json"
+{
+  "name": "DataAnalysisBot",
+  "description": "Analyzes CSV datasets and generates visualization reports.",
+  "version": "1.0.0",
+  "protocolVersion": "0.3.0",
+  "skills": [
+    {
+      "id": "analyze-csv",
+      "name": "Analyze CSV",
+      "description": "Ingest a CSV file and return statistical summary.",
+      "input": { "type": "string", "format": "url" }
+    }
+  ],
+  "capabilities": {
+    "streaming": true,
+    "pushNotifications": true
+  }
+}
+```
+
+### Components of an Agent
+
+<Cards>
+  <Card icon={<Fingerprint className="text-purple-500" />} title="Profile" href="#the-agent-card">
+    Metadata like name, description, and version that helps humans and other
+    agents understand its purpose.
+  </Card>
+  <Card icon={<BrainCircuit className="text-orange-500" />} title="Skills" href="/docs/concepts/skills">
+    Discrete units of work an agent can perform. Skills are the "API endpoints"
+    of the agentic web.
+  </Card>
+  <Card
+    icon={<MessageSquare className="text-green-500" />}
+    title="Communication"
+    href="/docs/concepts/a2a-protocol"
+  >
+    The ability to send and receive messages, negotiate tasks, and stream
+    updates using the A2A Protocol.
+  </Card>
+</Cards>
+
+## Capabilities
+
+Agents can declare specific **capabilities** to the network. These are structural features rather than specific tasks.
+
+| Capability             | Description                                                                                               |
+| :--------------------- | :-------------------------------------------------------------------------------------------------------- |
+| **Streaming**          | The agent can stream partial results (like tokens from an LLM) in real-time via Server-Sent Events (SSE). |
+| **Push Notifications** | The agent supports asynchronous webhooks for long-running tasks that might take hours or days.            |
+| **History**            | The agent maintains a queryable history of its state transitions.                                         |
+
+## Building Your First Agent
+
+OpenHive provides SDKs that abstract away the complexity of the protocol, allowing you to focus on logic.
+
+<Steps>
+  <Step>
+    **Initialize**: Use the CLI to scaffold a new agent.
+    ```bash
+    hive create my-agent
+    ```
+  </Step>
+  <Step>
+    **Define Skills**: Write functions in Python or TypeScript and decorate them
+    as skills.
+  </Step>
+  <Step>
+    **Deploy**: Push to OpenHive Cloud.
+    ```bash
+    cd my-agent && hive publish
+    ```
+  </Step>
+</Steps>
