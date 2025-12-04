@@ -20,6 +20,7 @@ import { ShineBorder } from "@/components/ui/shine-border";
 import { Button } from "@/components/ui/button";
 import { useSession } from "@/lib/auth-client";
 import { Spinner } from "@/components/ui/spinner";
+import { AnimatedThemeToggler } from "@/components/ui/animated-theme-toggler";
 
 export default function HomePage() {
   const { data, isPending } = useSession();
@@ -73,6 +74,8 @@ export default function HomePage() {
                 </Link>
               )}
             </Button>
+
+            <AnimatedThemeToggler variant="ghost" size="icon" />
           </div>
         </div>
       </div>
