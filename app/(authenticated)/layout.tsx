@@ -11,7 +11,7 @@ interface Props {
 
 export default async function Layout({ children }: Props) {
   const result = await validateAuth();
-  const user = result?.user;
+  const user = result?.session?.user;
 
   if (!user) {
     redirect("/login");

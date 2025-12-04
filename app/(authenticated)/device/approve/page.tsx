@@ -25,7 +25,7 @@ import {
 import { toast } from 'sonner';
 
 export default function DeviceApprovalPage() {
-  const { data } = useSession();
+  const { data, isPending } = useSession();
   const searchParams = useSearchParams();
   const router = useRouter();
   const userCode = searchParams.get('user_code');
@@ -33,6 +33,8 @@ export default function DeviceApprovalPage() {
   const [action, setAction] = useState<'approve' | 'deny' | null>(null);
 
   useEffect(() => {
+    if (isPending) return;
+
     if (!userCode) {
       router.push('/device');
       return;
@@ -45,7 +47,7 @@ export default function DeviceApprovalPage() {
       );
       window.location.href = `/login?redirect=${redirectUrl}`;
     }
-  }, [data?.user, userCode, router]);
+  }, [data?.user, userCode, router, isPending]);
 
   const handleApprove = async () => {
     setIsProcessing(true);

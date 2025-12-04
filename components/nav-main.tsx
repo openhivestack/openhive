@@ -23,9 +23,9 @@ interface NavMainProps {
 export function NavMain({
   items,
 }: NavMainProps) {
-  const { data: session } = useSession();
+  const { data: session, isPending} = useSession();
 
-  if (!session) {
+  if (!session && !isPending) {
     return null;
   }
 
