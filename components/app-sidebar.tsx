@@ -2,7 +2,6 @@
 
 import * as React from "react";
 import {
-  BookOpen,
   CircleQuestionMark,
   Settings2,
   SquareTerminal,
@@ -46,7 +45,6 @@ export function AppSidebar({ tree, ...props }: AppSidebarProps & React.Component
         icon: Settings2,
       },
     ],
-    starredAgents: [],
   };
 
   return (

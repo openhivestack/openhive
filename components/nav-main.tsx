@@ -10,6 +10,7 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import Link from "next/link";
+import { useSession } from "@/lib/auth-client";
 
 interface NavMainProps {
   items: {
@@ -22,6 +23,12 @@ interface NavMainProps {
 export function NavMain({
   items,
 }: NavMainProps) {
+  const { data: session } = useSession();
+
+  if (!session) {
+    return null;
+  }
+
   return (
     <SidebarGroup className="group-data-[collapsible=icon]:hidden">
       <SidebarGroupLabel>Platform</SidebarGroupLabel>
