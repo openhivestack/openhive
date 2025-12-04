@@ -12,7 +12,7 @@ export function Providers({ children }: Props) {
   return (
     <RootProvider
       theme={{
-        defaultTheme: "system",
+        defaultTheme: "dark",
         attribute: "class",
       }}
     >

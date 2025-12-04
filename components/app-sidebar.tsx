@@ -59,7 +59,7 @@ export function AppSidebar({ tree, ...props }: AppSidebarProps & React.Component
         <NavDocs tree={tree} />
       </SidebarContent>
       <SidebarFooter>
-        <SidebarMenuButton className="text-sidebar-foreground/70">
+        {/* <SidebarMenuButton className="text-sidebar-foreground/70">
           <Link
             href="https://docs.openhive.sh/docs/core/quick-start"
             target="_blank"
@@ -68,7 +68,7 @@ export function AppSidebar({ tree, ...props }: AppSidebarProps & React.Component
             <CircleQuestionMark className="size-4" />
             <span className="text-sm font-medium">Help & First Steps</span>
           </Link>
-        </SidebarMenuButton>
+        </SidebarMenuButton> */}
         <NavUser />
       </SidebarFooter>
       <SidebarRail />
