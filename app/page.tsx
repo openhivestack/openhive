@@ -93,9 +93,9 @@ export default function HomePage() {
 
         <div className="container relative z-10 mx-auto w-full max-w-6xl mt-10 md:mt-20 flex flex-col md:flex-row justify-between gap-8 md:gap-2 p-4 md:p-0">
           <div className="flex flex-col gap-1 mt-4 md:mt-10">
-            <h1 className="text-2xl md:text-4xl font-bold">Operating System of the <AnimatedGradientText>Agentic Web</AnimatedGradientText></h1>
-            <p className="text-lg text-muted-foreground max-w-xl">
-              Build, deploy, and orchestrate autonomous agents with the <span className="text-primary">Source-First</span> platform. You own the code; we handle the scale.
+            <h1 className="text-xl md:text-4xl font-bold">Universal Registry for the <AnimatedGradientText>Agentic Web</AnimatedGradientText></h1>
+            <p className="text-md text-muted-foreground max-w-xl">
+              Build, register, and discover autonomous agents with a developer-first platform. Open standards, federation-ready, and fully typed.
             </p>
             <CommandBox
               command="npx @open-hive/cli create first-agent"
@@ -103,7 +103,7 @@ export default function HomePage() {
             />
           </div>
           <div className="flex flex-col gap-2 items-center md:items-end">
-            <Terminal className="w-full max-w-[450px] shadow-lg">
+            <Terminal className="w-[450px] shadow-lg">
               <TypingAnimation className="text-xs">
                 $ npx @open-hive/cli create first-agent
               </TypingAnimation>
