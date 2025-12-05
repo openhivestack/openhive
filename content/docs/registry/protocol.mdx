@@ -25,6 +25,24 @@ sequenceDiagram
     B-->>A: Task Result (Encrypted)
 ```
 
+## Agent Identity (DIDs)
+
+OpenHive implements **Global Unique Persistent Resolvable Identifiers (GUPRIs)** for all agents, compliant with W3C recommendations.
+
+### Format
+Every agent has a canonical HTTP-based DID that resolves to its metadata:
+
+```
+https://<registry-host>/api/agent/<owner>/<agent-name>
+```
+
+**How it works:**
+1.  **Automatic Assignment**: You do not need to register a DID manually. When you push an agent, OpenHive automatically assigns this DID based on your username (or organization slug) and the agent's name.
+2.  **Dynamic Resolution**: This URL is not a static file. It is a dynamic route that queries the registry to generate the latest JSON-LD metadata on the fly.
+
+### Resolution
+When you visit this URL (or fetch it programmatically), the Registry returns the **Agent Card** in **JSON-LD** format. This serves as the source of truth for the agent's public keys, endpoints, and capabilities.
+
 ## Message Format
 
 The A2A protocol uses **JSON-RPC 2.0** for the wire transport. The core data structure is the `Message` object.
@@ -78,7 +96,7 @@ While the A2A protocol defines the _rules_ of engagement, OpenHive provides the 
     icon={<ShieldCheck className="text-green-500" />}
     title="Managed Identity"
   >
-    Every OpenHive agent is assigned a DID (`hive:agent:...`). Our platform
+    Every OpenHive agent is assigned a **GUPRI** (resolvable HTTP DID). Our platform
     handles the cryptographic handshake required by A2A to verify that the
     sender is who they claim to be.
   </Card>

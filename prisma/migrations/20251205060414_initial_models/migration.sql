@@ -153,6 +153,7 @@ CREATE TABLE "agent" (
     "latestVersion" TEXT,
     "runtime" TEXT,
     "tags" TEXT[],
+    "did" TEXT NOT NULL,
     "userId" TEXT,
     "organizationId" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -234,7 +235,10 @@ CREATE UNIQUE INDEX "organization_slug_key" ON "organization"("slug");
 CREATE UNIQUE INDEX "agent_name_key" ON "agent"("name");
 
 -- CreateIndex
-CREATE INDEX "agent_name_idx" ON "agent"("name");
+CREATE UNIQUE INDEX "agent_did_key" ON "agent"("did");
+
+-- CreateIndex
+CREATE INDEX "agent_name_did_idx" ON "agent"("name", "did");
 
 -- CreateIndex
 CREATE INDEX "agent_userId_idx" ON "agent"("userId");

@@ -90,7 +90,7 @@ export async function POST(req: NextRequest) {
         tags: tags || [],
       },
       create: {
-        id: `hive:agent:${name}`,
+        did: `hive:agent:${(auth.user as any).username || auth.user.id}:${name}`,
         name,
         description,
         userId: auth.user.id,

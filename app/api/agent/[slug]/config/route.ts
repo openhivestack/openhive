@@ -5,9 +5,10 @@ import { cloudService } from "@/lib/cloud.service";
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: Promise<{ agentName: string }> }
+  { params }: { params: Promise<{ slug: string }> }
 ) {
-  const { agentName } = await params;
+  const { slug } = await params;
+  const agentName = slug;
 
   const auth = await validateAuth();
   if (!auth?.user) {
@@ -43,9 +44,10 @@ export async function GET(
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: Promise<{ agentName: string }> }
+  { params }: { params: Promise<{ slug: string }> }
 ) {
-  const { agentName } = await params;
+  const { slug } = await params;
+  const agentName = slug;
 
   const auth = await validateAuth();
   if (!auth?.user) {

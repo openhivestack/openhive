@@ -5,16 +5,15 @@ import { cloudService } from "@/lib/cloud.service";
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: Promise<{ agentName: string }> }
+  { params }: { params: Promise<{ slug: string }> }
 ) {
-  const { agentName } = await params;
-
+  const { slug } = await params;
+  const agentName = slug;
   const auth = await validateAuth();
   if (!auth?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  // Check agent existence and permission
   const agent = await prisma.agent.findUnique({
     where: { name: agentName },
   });
@@ -23,18 +22,17 @@ export async function GET(
     return NextResponse.json({ error: "Agent not found" }, { status: 404 });
   }
 
-  // Allow creator to view logs
   if (agent.userId !== auth.user.id) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   try {
-    const logs = await cloudService.getAgentLogs(agentName);
-    return NextResponse.json({ logs });
+    const status = await cloudService.getAgentStatus(agentName);
+    return NextResponse.json({ status });
   } catch (error: any) {
-    console.error("Error fetching logs:", error);
+    console.error("Error fetching status:", error);
     return NextResponse.json(
-      { error: "Failed to fetch logs", details: error.message },
+      { error: "Failed to fetch status", details: error.message },
       { status: 500 }
     );
   }

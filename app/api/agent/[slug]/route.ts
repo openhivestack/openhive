@@ -3,18 +3,20 @@ import { handleAgentRequest } from "@/lib/agent-proxy";
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: Promise<{ agentName: string }> }
+  { params }: { params: Promise<{ slug: string }> }
 ) {
-  const { agentName } = await params;
-  return handleAgentRequest(req, agentName, []);
+  const { slug } = await params;
+  const agentName = slug;
+  return handleAgentRequest(req, agentName);
 }
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: Promise<{ agentName: string }> }
+  { params }: { params: Promise<{ slug: string }> }
 ) {
-  const { agentName } = await params;
-  return handleAgentRequest(req, agentName, []);
+  const { slug } = await params;
+  const agentName = slug;
+  return handleAgentRequest(req, agentName);
 }
 
 export async function PUT(

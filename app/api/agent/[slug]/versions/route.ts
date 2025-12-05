@@ -1,13 +1,14 @@
+
 import { NextRequest, NextResponse } from "next/server";
 import { validateAuth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: Promise<{ agentName: string }> }
+  { params }: { params: Promise<{ slug: string }> }
 ) {
-  const { agentName } = await params;
-
+  const { slug } = await params;
+  const agentName = slug;
   const auth = await validateAuth();
   if (!auth?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

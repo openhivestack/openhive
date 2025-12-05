@@ -175,13 +175,14 @@ model Invitation {
 // --- AGENT ECOSYSTEM MODELS ---
 
 model Agent {
-  id            String    @id // DID: hive:agent:<agent-name> or hive:agent:<scope>/<agent-name>
+  id            String    @id @default(cuid())
   name          String    @unique
   description   String?
   isPublic      Boolean   @default(true)
   latestVersion String?
   runtime       String?   // "node" or "python"
   tags          String[]  // Searchable tags
+  did           String    @unique // DID: hive:agent:<agent-name> or hive:agent:<scope>/<agent-name>
   
   userId        String?
   user          User?     @relation(fields: [userId], references: [id])
@@ -196,7 +197,7 @@ model Agent {
   updatedAt     DateTime  @updatedAt
 
   @@map("agent")
-  @@index([name])
+  @@index([name,did])
   @@index([userId])
   @@index([organizationId])
 }

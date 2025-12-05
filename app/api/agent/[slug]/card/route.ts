@@ -5,9 +5,10 @@ import { cloudService } from "@/lib/cloud.service";
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: Promise<{ agentName: string }> }
+  { params }: { params: Promise<{ slug: string }> }
 ) {
-  const { agentName } = await params;
+  const { slug } = await params;
+  const agentName = slug;
   const auth = await validateAuth();
 
   // 1. Fetch Agent with Latest Version and Creator info
@@ -63,6 +64,7 @@ export async function GET(
 
     // Database Fields (Source of Truth)
     id: agent.id,
+    did: agent.did,
     name: agent.name,
     description: agent.description || agentCard.description, // Fallback to card description
     isPublic: agent.isPublic,
@@ -81,6 +83,12 @@ export async function GET(
     status,
   };
 
+  const host = req.headers.get("host") || "localhost:3000";
+  const protocol = process.env.NODE_ENV === "production" ? "https" : "http";
+  // Fallback to 'user' if username is missing (shouldn't happen for valid users)
+  const ownerName = agent.user?.username || "unknown"; 
+  const gupri = `${protocol}://${host}/api/agent/${ownerName}/${agentName}`;
+
   return NextResponse.json({
     "@context": {
       "@vocab": "https://w3id.org/a2a/vocab#",
@@ -88,6 +96,7 @@ export async function GET(
       "dcterms": "http://purl.org/dc/terms/",
       "foaf": "http://xmlns.com/foaf/0.1/"
     },
+    "@id": gupri,
     "@type": "dcat:Dataset",
     ...card,
   });

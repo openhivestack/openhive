@@ -130,7 +130,18 @@ export async function POST(req: NextRequest) {
         "foaf": "http://xmlns.com/foaf/0.1/"
       },
       "@type": "dcat:Catalog",
-      agents: enrichedAgents.map(a => ({ ...a, "@type": "dcat:Dataset" })),
+      agents: enrichedAgents.map(a => {
+        const host = req.headers.get("host") || "localhost:3000";
+        const protocol = process.env.NODE_ENV === "production" ? "https" : "http";
+        const ownerName = a.user?.username || "unknown";
+        const gupri = `${protocol}://${host}/api/agent/${ownerName}/${a.name}`;
+        
+        return {
+          ...a,
+          "@id": gupri,
+          "@type": "dcat:Dataset"
+        };
+      }),
       pagination: {
         total,
         page: pageNum,

@@ -5,12 +5,13 @@ import { cloudService } from "@/lib/cloud.service";
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: Promise<{ agentName: string }> }
+  { params }: { params: Promise<{ slug: string }> }
 ) {
-  const { agentName } = await params;
-  const authData = await validateAuth();
+  const { slug } = await params;
+  const agentName = slug;
+  const auth = await validateAuth();
 
-  if (!authData?.user) {
+  if (!auth?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -36,14 +37,14 @@ export async function POST(
     // Authorization Check
     let isAuthorized = false;
 
-    if (agent.userId === authData.user.id) {
+    if (agent.userId === auth.user.id) {
       isAuthorized = true;
     } else if (agent.organizationId) {
       // Check if user is a member of the organization
       const member = await prisma.member.findFirst({
         where: {
           organizationId: agent.organizationId,
-          userId: authData.user.id,
+          userId: auth.user.id,
         },
       });
       if (member) {
