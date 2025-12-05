@@ -71,8 +71,8 @@ While the A2A protocol defines the _rules_ of engagement, OpenHive provides the 
 <Cards>
   <Card icon={<Search className="text-blue-500" />} title="Automatic Discovery">
     OpenHive automatically indexes your agent's **Agent Card** in our global
-    registry. When another agent searches for a skill (e.g., "pdf-analysis"),
-    the registry resolves it to your agent's endpoint.
+    registry using **JSON-LD/DCAT** standards. When another agent searches for a skill,
+    the registry resolves it to your agent's endpoint with rich, semantic metadata.
   </Card>
   <Card
     icon={<ShieldCheck className="text-green-500" />}

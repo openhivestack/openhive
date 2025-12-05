@@ -80,7 +80,7 @@ export default function HomePage() {
         </div>
       </div>
       {/* Hero Section */}
-      <div className="bg-background relative h-[300px] w-full overflow-hidden rounded-lg">
+      <div className="bg-background relative min-h-[300px] h-auto w-full overflow-hidden rounded-lg">
         <FlickeringGrid
           className="absolute inset-0 z-0 size-full w-full opacity-80 [mask-image:linear-gradient(to_bottom_right,white,transparent,transparent)]"
           squareSize={4}
@@ -88,12 +88,12 @@ export default function HomePage() {
           color="#60A5FA"
           maxOpacity={0.5}
           flickerChance={0.1}
-          height={300}
+          height={800}
         />
 
-        <div className="container relative z-10 mx-auto w-full max-w-6xl mt-20 flex justify-between gap-2">
-          <div className="flex flex-col gap-1 mt-10">
-            <h1 className="text-2xl font-bold">Operating System of the <AnimatedGradientText>Agentic Web</AnimatedGradientText></h1>
+        <div className="container relative z-10 mx-auto w-full max-w-6xl mt-10 md:mt-20 flex flex-col md:flex-row justify-between gap-8 md:gap-2 p-4 md:p-0">
+          <div className="flex flex-col gap-1 mt-4 md:mt-10">
+            <h1 className="text-2xl md:text-4xl font-bold">Operating System of the <AnimatedGradientText>Agentic Web</AnimatedGradientText></h1>
             <p className="text-lg text-muted-foreground max-w-xl">
               Build, deploy, and orchestrate autonomous agents with the <span className="text-primary">Source-First</span> platform. You own the code; we handle the scale.
             </p>
@@ -102,8 +102,8 @@ export default function HomePage() {
               className="w-full max-w-sm mt-6"
             />
           </div>
-          <div className="flex flex-col gap-2">
-            <Terminal className="w-[450px] shadow-lg">
+          <div className="flex flex-col gap-2 items-center md:items-end">
+            <Terminal className="w-full max-w-[450px] shadow-lg">
               <TypingAnimation className="text-xs">
                 $ npx @open-hive/cli create first-agent
               </TypingAnimation>
@@ -119,8 +119,8 @@ export default function HomePage() {
         </div>
       </div>
 
-      <div className="grid w-full max-w-6xl grid-cols-1 gap-8 mx-auto md:grid-cols-3">
-        <Card className="relative w-full max-w-[350px] overflow-hidden">
+      <div className="grid w-full max-w-6xl grid-cols-1 gap-8 mx-auto md:grid-cols-3 px-4 md:px-0">
+        <Card className="relative w-full max-w-[350px] overflow-hidden mx-auto">
           <ShineBorder shineColor={["#A07CFE", "#FE8FB5", "#FFBE7B"]} />
           <CardHeader className="items-center">
             <CardTitle>Source Scaffolding</CardTitle>
@@ -130,7 +130,7 @@ export default function HomePage() {
             </CardDescription>
           </CardHeader>
         </Card>
-        <Card className="relative w-full max-w-[350px] overflow-hidden">
+        <Card className="relative w-full max-w-[350px] overflow-hidden mx-auto">
           <ShineBorder shineColor={["#A07CFE", "#FE8FB5", "#FFBE7B"]} />
           <CardHeader className="items-center">
             <CardTitle>Global Registry</CardTitle>
@@ -140,7 +140,7 @@ export default function HomePage() {
             </CardDescription>
           </CardHeader>
         </Card>
-        <Card className="relative w-full max-w-[350px] overflow-hidden">
+        <Card className="relative w-full max-w-[350px] overflow-hidden mx-auto">
           <ShineBorder shineColor={["#A07CFE", "#FE8FB5", "#FFBE7B"]} />
           <CardHeader className="items-center">
             <CardTitle>Enterprise Runtime</CardTitle>
@@ -153,7 +153,7 @@ export default function HomePage() {
       </div>
 
       {/* Documentation Overview Section */}
-      <div className="container mx-auto w-full max-w-6xl grid grid-cols-3 gap-4">
+      <div className="container mx-auto w-full max-w-6xl grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-4 px-4 md:px-0">
         <div className="flex flex-col gap-2">
           <h2 className="text-lg font-bold">Concepts</h2>
           <ul className="flex flex-col gap-1">
@@ -376,9 +376,9 @@ export default function HomePage() {
       </div>
 
       {/* Footer Section */}
-      <footer className="container mx-auto w-full max-w-6xl border-t border-border pt-12 pb-8">
+      <footer className="container mx-auto w-full max-w-6xl border-t border-border pt-12 pb-8 px-4 md:px-0">
         <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
-          <div className="flex flex-col gap-2 col-span-5">
+          <div className="flex flex-col gap-2 md:col-span-5">
             <div className="flex items-center gap-2">
               <Logo size="size-8" className="!justify-start" animated={false} />
             </div>
@@ -388,7 +388,7 @@ export default function HomePage() {
             </p>
           </div>
 
-          <div className="flex flex-col gap-2 col-span-2">
+          <div className="flex flex-col gap-2 md:col-span-2">
             <h3 className="font-semibold text-foreground">Product</h3>
             <Link
               href="/docs"
@@ -410,7 +410,7 @@ export default function HomePage() {
             </Link>
           </div>
 
-          <div className="flex flex-col gap-2 col-span-2">
+          <div className="flex flex-col gap-2 md:col-span-2">
             <h3 className="font-semibold text-foreground">Community</h3>
             <a
               href="https://discord.gg/qsfG2tJ6mJ"
@@ -432,7 +432,7 @@ export default function HomePage() {
             </a>
           </div>
 
-          <div className="flex flex-col gap-2 col-span-2">
+          <div className="flex flex-col gap-2 md:col-span-2">
             <h3 className="font-semibold text-foreground">Legal</h3>
             <Link
               href="/privacy-policy"

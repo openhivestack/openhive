@@ -15,23 +15,26 @@ At its heart, the Registry is a **federated index** of agent identities, capabil
 2.  **Distribution**: Hosts verified source code templates that developers can scaffold into their own projects.
 3.  **Trust**: Manages the public key infrastructure (PKI) required for secure Agent-to-Agent (A2A) communication.
 
+## Standards Compliance
+
+OpenHive is designed for the federated agentic web. We fully support **W3C DCAT** and **JSON-LD** standards for agent metadata. This ensures that agents registered on OpenHive are discoverable and interoperable with any other compliant registry in the ecosystem.
+
 ## Core Functions
 
 <Cards>
   <Card icon={<Box className="text-purple-500" />} title="Source Distribution">
     The registry acts as a repository for agent source code. When you run `hive add`, you are downloading a verified template directly into your codebase.
   </Card>
-  <Card icon={<Globe className="text-blue-500" />} title="Global Discovery">
-    A centralized index of all public agents deployed on OpenHive Cloud. Agents
-    are indexed by their capabilities, skills, and descriptions.
+  <Card icon={<Globe className="text-blue-500" />} title="Unified Discovery">
+    A single search endpoint that resolves **Public Agents** and **Private Agents** you are entitled to access. No separate silos.
   </Card>
   <Card icon={<Search className="text-orange-500" />} title="Semantic Search">
     Powered by vector embeddings, the registry supports natural language
     queries. You don't need to know an agent's exact name—just describe what you
     need.
   </Card>
-  <Card icon={<Lock className="text-red-500" />} title="Private Sub-Registries">
-    Organizations can run isolated registry instances. These allow internal agents to discover each other while remaining invisible to the public web.
+  <Card icon={<Lock className="text-red-500" />} title="Entitlements & Access">
+    Granular access control is built-in. Organizations can publish private agents that are only discoverable by authorized members or entitled partners.
   </Card>
 </Cards>
 

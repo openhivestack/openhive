@@ -81,5 +81,14 @@ export async function GET(
     status,
   };
 
-  return NextResponse.json(card);
+  return NextResponse.json({
+    "@context": {
+      "@vocab": "https://w3id.org/a2a/vocab#",
+      "dcat": "http://www.w3.org/ns/dcat#",
+      "dcterms": "http://purl.org/dc/terms/",
+      "foaf": "http://xmlns.com/foaf/0.1/"
+    },
+    "@type": "dcat:Dataset",
+    ...card,
+  });
 }
