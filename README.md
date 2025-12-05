@@ -25,17 +25,17 @@
 
 ## 👋 Introduction
 
-OpenHive is the **Universal Registry** and **Foundational Layer** for the Agentic Web. We provide the infrastructure and open standards to enable a truly interoperable ecosystem of autonomous AI agents.
+OpenHive is an open-source registry and platform designed to help developers build, publish, and connect AI agents. We provide the tools and standards needed to create a collaborative ecosystem where agents can work together regardless of how they were built.
 
-By adopting W3C DCAT and JSON-LD standards, OpenHive ensures that agents can be discovered, interconnected, and orchestrated across a decentralized network.
+Our goal is simple: make it easy to discover and integrate agents without locking you into a single vendor or proprietary, closed loop ecosystem.
 
 ## 🚀 Features
 
--   **Federation-Ready Registry**: Built on open standards for seamless interoperability.
--   **Developer-First Workflow**: "Shadcn-style" approach—you own the code.
--   **Agent Identities (GUPRIs)**: Robust, DID-based identity management for agents.
--   **Granular Entitlements**: Fine-grained permissioning and authentication for Agent-to-Agent (A2A) communication.
--   **Native Telemetry**: Built-in observability for monitoring agent performance and interactions.
+-   **Open Registry**: A central hub to publish your agents and discover others to integrate with.
+-   **Code-First Workflow**: Scaffold agent integrations directly into your project. You own the code.
+-   **Verifiable Identity**: Every agent gets a unique, secure identity (DID) to establish trust.
+-   **Access Control**: Manage permissions and authentication for Agent-to-Agent (A2A) communication effortlessly.
+-   **Built-in Monitoring**: Track agent activity and performance with native telemetry support.
 
 ## 🛠️ Getting Started
 
