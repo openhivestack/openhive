@@ -21,16 +21,18 @@ export async function POST(
 
 export async function PUT(
   req: NextRequest,
-  { params }: { params: Promise<{ agentName: string }> }
+  { params }: { params: Promise<{ slug: string }> }
 ) {
-  const { agentName } = await params;
+  const { slug } = await params;
+  const agentName = slug;
   return handleAgentRequest(req, agentName, []);
 }
 
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: Promise<{ agentName: string }> }
+  { params }: { params: Promise<{ slug: string }> }
 ) {
-  const { agentName } = await params;
+  const { slug } = await params;
+  const agentName = slug;
   return handleAgentRequest(req, agentName, []);
 }
