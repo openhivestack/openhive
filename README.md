@@ -34,3 +34,11 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+## License
+
+This project is licensed under the **Apache 2.0 License**.
+
+**OpenHive** follows an **Open Core** model:
+-   **Core (Community Edition)**: The code in this repository (root) is open source (Apache 2.0). It includes the foundational registry and agent capabilities.
+-   **Enterprise Edition**: Advanced features (SSO, Audit Logs, Governance) will be located in the `ee/` directory (Proprietary).

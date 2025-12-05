@@ -2,9 +2,10 @@
 
 import * as React from "react";
 import {
-  CircleQuestionMark,
-  Settings2,
   SquareTerminal,
+  Settings2,
+  ShieldAlert,
+  LucideIcon,
 } from "lucide-react";
 
 import { NavMain } from "@/components/nav-main";
@@ -22,30 +23,33 @@ import { Logo } from "./logo";
 import { usePathname, useSearchParams } from "next/navigation";
 import { NavDocs } from "./nav-docs";
 
+const iconMap: Record<string, LucideIcon> = {
+  "square-terminal": SquareTerminal,
+  "settings-2": Settings2,
+  "shield-alert": ShieldAlert,
+};
+
 interface AppSidebarProps {
   tree: any;
+  navMain: {
+    name: string;
+    url: string;
+    icon: string;
+    isActive?: boolean;
+  }[];
 }
 
-export function AppSidebar({ tree, ...props }: AppSidebarProps & React.ComponentProps<typeof Sidebar>) {
+export function AppSidebar({ tree, navMain, ...props }: AppSidebarProps & React.ComponentProps<typeof Sidebar>) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  const data = {
-    navMain: [
-      {
-        name: "My Agents",
-        url: "/agent/list",
-        isActive: pathname.startsWith("/agent/list") && searchParams.get("q") === null,
-        icon: SquareTerminal,
-      },
-      {
-        name: "Settings",
-        url: "/settings",
-        isActive: pathname.startsWith("/settings"),
-        icon: Settings2,
-      },
-    ],
-  };
+  // Process items to add isActive state and map icons
+  const processedNavMain = navMain.map((item) => ({
+    ...item,
+    icon: iconMap[item.icon] || SquareTerminal, // Fallback icon
+    isActive: item.isActive ?? (pathname.startsWith(item.url) && (item.url !== "/agent/list" || searchParams.get("q") === null)),
+  }));
+
 
   return (
     <Sidebar collapsible="icon" {...props}>
@@ -55,7 +59,7 @@ export function AppSidebar({ tree, ...props }: AppSidebarProps & React.Component
         </div>
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={data.navMain} />
+        <NavMain items={processedNavMain} />
         <NavDocs tree={tree} />
       </SidebarContent>
       <SidebarFooter>

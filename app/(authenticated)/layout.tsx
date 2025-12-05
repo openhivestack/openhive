@@ -5,6 +5,8 @@ import { validateAuth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { source } from "@/lib/source";
 
+import { getNavConfig } from "@/lib/navigation";
+
 interface Props {
   children: ReactNode;
 }
@@ -17,10 +19,12 @@ export default async function Layout({ children }: Props) {
     redirect("/login");
   }
 
+  const navConfig = await getNavConfig();
+
   return (
     <>
       <SidebarProvider>
-        <AppSidebar tree={source.pageTree} />
+        <AppSidebar tree={source.pageTree} navMain={navConfig.navMain} />
         <SidebarInset>{children}</SidebarInset>
       </SidebarProvider>
     </>

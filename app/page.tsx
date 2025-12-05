@@ -98,14 +98,14 @@ export default function HomePage() {
               Build, deploy, and orchestrate autonomous agents with the <span className="text-primary">Source-First</span> platform. You own the code; we handle the scale.
             </p>
             <CommandBox
-              command="hive create first-agent"
+              command="npx @open-hive/cli create first-agent"
               className="w-full max-w-sm mt-6"
             />
           </div>
           <div className="flex flex-col gap-2">
             <Terminal className="w-[450px] shadow-lg">
               <TypingAnimation className="text-xs">
-                $ hive create first-agent
+                $ npx @open-hive/cli create first-agent
               </TypingAnimation>
               <AnimatedSpan className="text-green-500 text-xs flex items-center gap-1">
                 Creating a new OpenHive agent:{" "}
@@ -158,18 +158,18 @@ export default function HomePage() {
           <h2 className="text-lg font-bold">Concepts</h2>
           <ul className="flex flex-col gap-1">
             <li className="text-primary hover:text-primary/80 cursor-pointer text-blue-500">
-              <Link href="/docs/concepts/agents">
-                Basic structure of an agent
+              <Link href="/docs/registry/overview">
+                Registry Overview
               </Link>
             </li>
             <li className="text-primary hover:text-primary/80 cursor-pointer text-blue-500">
-              <Link href="/docs/concepts/registry#registry--discovery">
-                How does agent discovery work?
+              <Link href="/docs/registry/architecture">
+                Registry Architecture
               </Link>
             </li>
             <li className="text-primary hover:text-primary/80 cursor-pointer text-blue-500">
-              <Link href="/docs/concepts/a2a-protocol">
-                Working with A2A Protocol
+              <Link href="/docs/registry/protocol">
+                A2A Protocol
               </Link>
             </li>
           </ul>
@@ -251,7 +251,7 @@ export default function HomePage() {
           <TabsContent value="start">
             <Terminal className="w-full shadow-lg" startOnView={false}>
               <TypingAnimation className="text-xs">
-                $ cd first-agent && hive start
+                $ cd first-agent && npm run dev
               </TypingAnimation>
               <AnimatedSpan className="text-blue-500 text-xs flex items-center gap-1">
                 Found local .agent-card.json, starting agent...
@@ -290,7 +290,7 @@ export default function HomePage() {
           <TabsContent value="call">
             <Terminal className="w-full shadow-lg" startOnView={false}>
               <TypingAnimation className="text-xs">
-                $ hive call first-agent --message &quot;Hi, how are you?&quot;
+                $ npx @open-hive/cli call first-agent --message &quot;Hi&quot;
               </TypingAnimation>
               <AnimatedSpan className="text-xs flex items-center gap-1">
                 <span className="text-green-500">✔</span> Resolving agent...
@@ -298,7 +298,7 @@ export default function HomePage() {
               <AnimatedSpan className="text-xs flex items-center gap-1">
                 <span className="text-green-500">✔</span> Connecting to{" "}
                 <span className="text-blue-500">
-                  openhive:agent:first-agent
+                  hive:agent:first-agent
                 </span>
               </AnimatedSpan>
               <AnimatedSpan className="text-xs flex items-center gap-1">
@@ -317,7 +317,7 @@ export default function HomePage() {
           <TabsContent value="publish">
             <Terminal className="w-full shadow-lg" startOnView={false}>
               <TypingAnimation className="text-xs">
-                $ cd first-agent && hive publish
+                $ cd first-agent && npx @open-hive/cli publish
               </TypingAnimation>
               <AnimatedSpan className="text-xs flex items-center gap-1">
                 <br />
@@ -358,7 +358,7 @@ export default function HomePage() {
           <TabsContent value="deploy">
             <Terminal className="w-full shadow-lg" startOnView={false}>
               <TypingAnimation className="text-xs">
-                $ hive deploy first-agent@0.1.0
+                $ npx @open-hive/cli deploy first-agent@0.1.0
               </TypingAnimation>
               <AnimatedSpan className="text-xs flex items-center gap-1">
                 <br />
@@ -397,10 +397,10 @@ export default function HomePage() {
               Documentation
             </Link>
             <Link
-              href="/docs/concepts/agents"
+              href="/docs/registry/overview"
               className="text-sm text-muted-foreground hover:text-primary transition-colors"
             >
-              Agents
+              Registry
             </Link>
             <Link
               href="/docs/guides/deployment"

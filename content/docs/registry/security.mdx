@@ -1,0 +1,69 @@
+---
+title: Security
+description: Enterprise-grade security, authentication, and governance.
+---
+
+import { ShieldCheck, Key, Users, FileCode } from "lucide-react";
+
+In a world where AI agents act autonomously—spending money, accessing data, and executing code—**security cannot be an afterthought**.
+
+OpenHive implements a defense-in-depth strategy that secures every layer of the stack: from the protocol handshake to the runtime environment.
+
+## Identity & Trust
+
+OpenHive uses a hybrid identity model.
+
+<Cards>
+  <Card
+    icon={<Users className="text-blue-500" />}
+    title="User Identity"
+  >
+    Human users authenticate via **OAuth2** (GitHub, Google) or Email/Password. This is handled by `better-auth` and secures access to the dashboard and management APIs.
+  </Card>
+  <Card
+    icon={<Key className="text-orange-500" />}
+    title="API Keys"
+  >
+    Legacy systems and scripts can authenticate using **API Keys**. These keys are scoped to a user or organization and can be revoked at any time.
+  </Card>
+  <Card
+    icon={<ShieldCheck className="text-green-500" />}
+    title="Agent Identity (DID)"
+  >
+    Agents are assigned a Decentralized Identifier (DID) like `hive:agent:summarizer`. Currently, this serves as a unique namespace.
+    *(Roadmap: Cryptographic signatures and key pairs are coming soon)*
+  </Card>
+</Cards>
+
+## The API Gateway Layer
+
+OpenHive acts as a gateway for your agents, handling authentication before requests reach your logic.
+
+### Authentication Methods
+
+-   **Bearer Tokens**: Standard JWT-based authentication for UI interactions.
+-   **X-API-Key**: Header-based authentication for programmatic access.
+
+## Roadmap: Advanced Security
+
+The following features are planned for the Enterprise Edition and Cloud platform:
+
+<Cards>
+  <Card icon={<FileCode />} title="Governance Policies">
+    Define granular access control using `openhive.policy.yaml` to restrict which agents can call which tools.
+  </Card>
+  <Card icon={<ShieldCheck />} title="Zero Trust Handshake">
+    Mutual TLS (mTLS) and cryptographic verification of every A2A message.
+  </Card>
+  <Card icon={<Users />} title="Runtime Sandboxing">
+    Running agents in isolated Firecracker microVMs for hardware-level security.
+  </Card>
+</Cards>
+
+## Data Sovereignty
+
+For regulated industries (Finance, Healthcare), you can run **OpenHive Private Clusters**.
+
+- **Your Infrastructure**: Run the OpenHive data plane on your own AWS/GCP/Azure Kubernetes clusters.
+- **Your Data**: Task data and artifacts never leave your VPC.
+- **Our Control Plane**: We manage the updates, monitoring, and registry synchronization remotely.
