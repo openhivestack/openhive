@@ -22,6 +22,7 @@ export default function Page() {
   const handleSocialLogin = (provider: string) => {
     void signIn.social({
       provider: provider as "github",
+      callbackURL: "/agent/list",
     });
   };
 
@@ -35,27 +36,27 @@ export default function Page() {
           email,
           password,
           name,
-          callbackURL: "/",
+          callbackURL: "/agent/list",
         });
 
         if (error) {
           toast.error(error.message);
         } else {
           // Explicitly redirect on success
-          router.push("/");
+          router.push("/agent/list");
         }
       } else {
         const { error } = await signIn.email({
           email,
           password,
-          callbackURL: "/",
+          callbackURL: "/agent/list",
         });
 
         if (error) {
           toast.error(error.message);
         } else {
           // Explicitly redirect on success
-          router.push("/");
+          router.push("/agent/list");
         }
       }
     } catch (err) {

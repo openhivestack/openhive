@@ -24,8 +24,6 @@ type Features = typeof coreFeatures & Record<string, FeatureConfig>;
 let loadedFeatures: Features | null = null;
 
 async function loadFeatures(): Promise<Features> {
-  if (loadedFeatures) return loadedFeatures;
-
   let merged: any = { ...coreFeatures };
 
   try {
@@ -37,7 +35,7 @@ async function loadFeatures(): Promise<Features> {
     }
   } catch (e) {
     // EE module not found, proceed with core features only
-    // console.log("EE features not found, running in OSS mode.");
+    console.log("EE features not found, running in OSS mode.");
   }
 
   loadedFeatures = merged;
@@ -113,4 +111,18 @@ export async function getComputedNavigation(baseItems: NavItem[] = defaultNavIte
   }
 
   return finalItems;
+}
+
+export async function getFilteredNavigation(user: any): Promise<NavItem[]> {
+  // @ts-ignore
+  const { isRootUser } = await import("@/lib/auth-helpers");
+  const navItems = await getComputedNavigation();
+
+  return navItems.filter(item => {
+    if (!item.scopes || item.scopes.length === 0) return true;
+    if (item.scopes.includes("root")) {
+      return isRootUser(user);
+    }
+    return true;
+  });
 }

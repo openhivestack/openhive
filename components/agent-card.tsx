@@ -24,10 +24,12 @@ interface AgentCardProps {
   };
   className?: string;
   showVerification?: boolean;
+  baseHref?: string;
 }
 
-export function AgentCard({ agent, className, showVerification = true }: AgentCardProps) {
+export function AgentCard({ agent, className, showVerification = true, baseHref = "/agent" }: AgentCardProps) {
   const isVerified = agent.verificationStatus === "VERIFIED";
+  const agentLink = baseHref === "/agent" ? `${baseHref}/${agent.name}/overview` : `${baseHref}/${agent.name}`;
 
   return (
     <Card className={cn("group hover:shadow-xl hover:-translate-y-1 transition-all duration-300 border-primary/10 bg-secondary/30 backdrop-blur-sm overflow-hidden relative pb-0", className)}>
@@ -64,7 +66,7 @@ export function AgentCard({ agent, className, showVerification = true }: AgentCa
           </div>
         </div>
         <CardTitle className="text-md group-hover:text-primary transition-colors relative z-10 flex items-center gap-2">
-          <Link href={`/agent/${agent.name}/overview`} className="hover:underline underline-offset-4 decoration-primary/50">
+          <Link href={agentLink} className="hover:underline underline-offset-4 decoration-primary/50">
             {agent.name}
           </Link>
         </CardTitle>
@@ -110,7 +112,7 @@ export function AgentCard({ agent, className, showVerification = true }: AgentCa
           <Tooltip>
             <TooltipTrigger asChild>
               <Button asChild size="icon" variant="ghost" className="hover:bg-primary/10 hover:text-primary h-8 w-8">
-                <Link href={`/agent/${agent.name}/overview`}>
+                <Link href={agentLink}>
                   <Globe className="w-4 h-4" />
                 </Link>
               </Button>

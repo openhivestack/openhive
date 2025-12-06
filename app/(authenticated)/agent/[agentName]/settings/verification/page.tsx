@@ -1,6 +1,5 @@
 import { prisma } from "@/lib/db";
 import { VerificationClient } from "./client";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ShieldAlert, ShieldCheck, ShieldQuestion } from "lucide-react";
 

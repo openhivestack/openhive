@@ -20,7 +20,7 @@ export interface PaginatedResponse<T> {
 export interface AgentVersion {
   version: string;
   createdAt: string;
-  installCount: number;
+
 }
 
 export interface AgentTask {
@@ -57,7 +57,9 @@ export type AgentStatus =
   | "FAILED"
   | "UNKNOWN";
 
-export interface AgentDetail extends Agent {
+export interface AgentDetail extends Omit<Agent, "createdAt" | "updatedAt"> {
+  createdAt: string | Date;
+  updatedAt: string | Date;
   creator: {
     name: string | null;
     image: string | null;
@@ -75,8 +77,11 @@ export interface AgentDetail extends Agent {
   } | null;
   version: string;
   latestVersion: string;
-  installCount: number;
+
   status: string;
+  _count?: {
+    executions: number;
+  };
   [key: string]: any; // For extra properties from agent-card
 }
 

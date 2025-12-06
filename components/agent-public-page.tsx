@@ -466,10 +466,10 @@ export function AgentPublicPage({ agent }: AgentPublicPageProps) {
             <CardContent className="px-0 space-y-3 text-sm">
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground flex items-center gap-2">
-                  <Activity className="size-4" /> Downloads
+                  <Activity className="size-4" /> Runs
                 </span>
                 <span className="font-medium">
-                  {agent.installCount?.toLocaleString() || 0}
+                  {agent._count?.executions?.toLocaleString() || 0}
                 </span>
               </div>
               <div className="flex items-center justify-between">

@@ -33,6 +33,9 @@ export async function GET(
           slug: true,
         },
       },
+      _count: {
+        select: { executions: true },
+      },
     },
   });
 
@@ -91,6 +94,7 @@ export async function GET(
     version: latestVersion?.version || "0.0.0",
     latestVersion: latestVersion?.version || "0.0.0", // Explicit field
     installCount: latestVersion?.installCount || 0,
+    _count: agent._count,
 
     // Operational Info
     status,

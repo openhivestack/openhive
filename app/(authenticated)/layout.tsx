@@ -6,7 +6,7 @@ import { isRootUser } from "@/lib/auth-helpers";
 import { redirect } from "next/navigation";
 import { source } from "@/lib/source";
 
-import { getComputedNavigation } from "@/lib/features";
+import { getFilteredNavigation } from "@/lib/features";
 
 interface Props {
   children: ReactNode;
@@ -20,16 +20,7 @@ export default async function Layout({ children }: Props) {
     redirect("/login");
   }
 
-  const navItems = await getComputedNavigation();
-
-  // Filter items based on scopes
-  const filteredNavItems = navItems.filter(item => {
-    if (!item.scopes || item.scopes.length === 0) return true;
-    if (item.scopes.includes("root")) {
-      return isRootUser(result.user);
-    }
-    return true;
-  });
+  const filteredNavItems = await getFilteredNavigation(user);
 
   return (
     <>

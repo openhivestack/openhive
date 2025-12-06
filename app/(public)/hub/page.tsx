@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { validateAuth } from "@/lib/auth";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Globe, ShieldCheck, Ghost } from "lucide-react";
+import { Search, ShieldCheck, Ghost, LogIn } from "lucide-react";
 import { FlickeringGrid } from "@/components/ui/flickering-grid";
 import { AnimatedGradientText } from "@/components/ui/animated-gradient-text";
 import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription } from "@/components/ui/empty";
@@ -14,6 +14,8 @@ export const dynamic = 'force-dynamic';
 
 export default async function HubPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
   const { q } = await searchParams;
+  const authResult = await validateAuth();
+  const session = authResult?.session;
 
   const agents = await prisma.agent.findMany({
     where: {
@@ -64,6 +66,17 @@ export default async function HubPage({ searchParams }: { searchParams: Promise<
           flickerChance={0.1}
           height={400}
         />
+
+        {!session && (
+          <div className="absolute top-4 right-4 z-20">
+            <Button variant="ghost" asChild className="gap-2">
+              <Link href="/login">
+                <LogIn className="w-4 h-4" />
+                Login
+              </Link>
+            </Button>
+          </div>
+        )}
 
         <div className="container relative z-10 mx-auto px-4 py-12 sm:px-4 lg:px-6 flex flex-col items-center text-center gap-6">
           <div className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-primary/10 text-primary hover:bg-primary/20">
@@ -134,7 +147,7 @@ export default async function HubPage({ searchParams }: { searchParams: Promise<
             </div>
           ) : (
             agentList.map((agent) => (
-              <AgentCard key={agent.id} agent={agent} />
+              <AgentCard key={agent.id} agent={agent} baseHref="/hub" />
             ))
           )}
         </div>

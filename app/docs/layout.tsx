@@ -5,10 +5,12 @@ import { source } from "@/lib/source";
 import { AppSidebar } from "@/components/app-sidebar";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 
-import { getComputedNavigation } from "@/lib/features";
+import { getFilteredNavigation } from "@/lib/features";
+import { validateAuth } from "@/lib/auth";
 
 export default async function Layout({ children }: { children: ReactNode }) {
-  const navItems = await getComputedNavigation();
+  const result = await validateAuth();
+  const navItems = await getFilteredNavigation(result?.user);
   return (
     <SidebarProvider>
       <SidebarInset>
