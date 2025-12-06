@@ -81,7 +81,7 @@ export default function SettingsPage() {
           <ButtonGroup>
             <ButtonGroupText asChild>
               <Label htmlFor="url" className="font-normal">
-                openhive.sh/agent/
+                openhive.cloud/agent/
               </Label>
             </ButtonGroupText>
             <InputGroup className="rounded-md">
@@ -92,7 +92,7 @@ export default function SettingsPage() {
         <CardFooter className="flex bg-accent py-2 rounded-b-xl flex-wrap gap-1 text-xs">
           Learn more about{" "}
           <Link
-            href={`https://docs.openhive.sh/docs/concepts/agents`}
+            href={`https://docs.openhive.cloud/docs/concepts/agents`}
             target="_blank"
             className="mt-0.5 font-medium text-primary hover:text-primary/80 flex items-center gap-1"
           >
@@ -130,7 +130,7 @@ export default function SettingsPage() {
         <CardFooter className="flex bg-accent py-2 rounded-b-xl flex-wrap gap-1 text-xs">
           Learn more about{" "}
           <Link
-            href={`https://docs.openhive.sh/docs/concepts/agents`}
+            href={`https://docs.openhive.cloud/docs/concepts/agents`}
             target="_blank"
             className="mt-0.5 font-medium text-primary hover:text-primary/80 flex items-center gap-1"
           >

@@ -169,11 +169,11 @@ export default function Page() {
 
       <div className="text-muted-foreground *:[a]:hover:text-primary text-center text-xs text-balance *:[a]:underline *:[a]:underline-offset-4 w-56 mt-4">
         By clicking continue, you agree to our{" "}
-        <a href="https://docs.openhive.sh/terms-of-service" target="_blank">
+        <a href="https://docs.openhive.cloud/terms-of-service" target="_blank">
           Terms of Service
         </a>{" "}
         and{" "}
-        <a href="https://docs.openhive.sh/privacy-policy" target="_blank">
+        <a href="https://docs.openhive.cloud/privacy-policy" target="_blank">
           Privacy Policy
         </a>
         .

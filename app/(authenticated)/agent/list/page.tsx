@@ -22,7 +22,7 @@ import { ToggleGroupItem, ToggleGroup } from "@/components/ui/toggle-group";
 import { AgentDetail, PaginationMeta, api } from "@/lib/api-client";
 import { useEffect, useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AgentBlock } from "@/components/agent-block";
+import { AgentCard } from "@/components/agent-card";
 import { Header } from "@/components/header";
 import { Button } from "@/components/ui/button";
 
@@ -132,9 +132,7 @@ export default function AgentsPage() {
             {layout === "grid" ? (
               <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
                 {agents.map((agent) => (
-                  <Link key={agent.name} href={`/agent/${agent.name}/overview`}>
-                    <AgentBlock agent={agent} />
-                  </Link>
+                  <AgentCard key={agent.name} agent={agent} />
                 ))}
               </div>
             ) : (
@@ -168,7 +166,7 @@ export default function AgentsPage() {
         )}
 
         {!loading && !error && agents.length === 0 && (
-          <div className="flex justify-center items-center w-full flex-1">
+          <div className="flex justify-center items-start max-w-2xl mx-auto flex-1">
             <Empty className="border border-dashed">
               <EmptyHeader>
                 <EmptyMedia variant="icon">

@@ -9,8 +9,8 @@
     <a href="LICENSE">
       <img src="https://img.shields.io/badge/License-Apache_2.0-blue.svg" alt="License: Apache 2.0">
     </a>
-    <a href="https://www.openhive.sh">
-      <img src="https://img.shields.io/badge/Website-openhive.sh-orange" alt="Website">
+    <a href="https://www.openhive.cloud">
+      <img src="https://img.shields.io/badge/Website-openhive.cloud-orange" alt="Website">
     </a>
     <a href="CONTRIBUTING.md">
       <img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg" alt="PRs Welcome">
@@ -59,12 +59,19 @@ Our goal is simple: make it easy to discover and integrate agents without lockin
     pnpm install
     ```
 
-3.  **Start the development server:**
+3.  **Set up environment variables:**
+    Copy the example environment file and update it with your configuration:
+    ```bash
+    cp .env.example .env
+    ```
+    At a minimum, ensure your `DATABASE_URL` is correct.
+
+4.  **Start the development server:**
     ```bash
     npm run dev
     ```
 
-4.  **Open locally:**
+5.  **Open locally:**
     Navigate to [http://localhost:3000](http://localhost:3000) to see the OpenHive registry running locally.
 
 ## 🤝 Contributing

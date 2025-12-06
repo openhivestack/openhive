@@ -229,8 +229,7 @@ export default function ApiKeysPage() {
                 </Dialog>
               </CardTitle>
               <CardDescription>
-                These keys can be used to authenticate with the OpenHive CLI and
-                SDKs.
+                These keys can be used to authenticate with the OpenHive APIs.
               </CardDescription>
             </CardHeader>
             <CardContent>

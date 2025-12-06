@@ -28,7 +28,7 @@ export const Header = ({ className, children }: HeaderProps) => {
           <AnimatedThemeToggler variant="ghost" size="icon" />
 
           {/* User menu */}
-          <UserProfile />
+          <UserProfile showText />
         </div>
       </div>
     </header>

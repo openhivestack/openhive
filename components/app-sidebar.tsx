@@ -1,33 +1,19 @@
 "use client";
 
 import * as React from "react";
-import {
-  SquareTerminal,
-  Settings2,
-  ShieldAlert,
-  LucideIcon,
-} from "lucide-react";
 
 import { NavMain } from "@/components/nav-main";
 import { NavUser } from "@/components/nav-user";
-import Link from "next/link";
 import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
   SidebarHeader,
-  SidebarMenuButton,
   SidebarRail,
 } from "@/components/ui/sidebar";
 import { Logo } from "./logo";
 import { usePathname, useSearchParams } from "next/navigation";
 import { NavDocs } from "./nav-docs";
-
-const iconMap: Record<string, LucideIcon> = {
-  "square-terminal": SquareTerminal,
-  "settings-2": Settings2,
-  "shield-alert": ShieldAlert,
-};
 
 interface AppSidebarProps {
   tree: any;
@@ -35,6 +21,7 @@ interface AppSidebarProps {
     name: string;
     url: string;
     icon: string;
+    className?: string;
     isActive?: boolean;
   }[];
 }
@@ -46,7 +33,8 @@ export function AppSidebar({ tree, navMain, ...props }: AppSidebarProps & React.
   // Process items to add isActive state and map icons
   const processedNavMain = navMain.map((item) => ({
     ...item,
-    icon: iconMap[item.icon] || SquareTerminal, // Fallback icon
+    icon: item.icon || 'square-terminal', // Fallback icon
+    className: item.className || '',
     isActive: item.isActive ?? (pathname.startsWith(item.url) && (item.url !== "/agent/list" || searchParams.get("q") === null)),
   }));
 
@@ -65,7 +53,7 @@ export function AppSidebar({ tree, navMain, ...props }: AppSidebarProps & React.
       <SidebarFooter>
         {/* <SidebarMenuButton className="text-sidebar-foreground/70">
           <Link
-            href="https://docs.openhive.sh/docs/core/quick-start"
+            href="https://docs.openhive.cloud/docs/core/quick-start"
             target="_blank"
             className="flex items-center gap-2"
           >

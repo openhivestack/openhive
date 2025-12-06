@@ -1,4 +1,5 @@
 import type { Agent, User } from "@prisma/client";
+export type { Agent, User };
 
 // Ensure BASE_URL is empty string for same-origin requests (default for Next.js app routes)
 // If running server-side or in a different environment, this might need adjustment.
@@ -61,6 +62,16 @@ export interface AgentDetail extends Agent {
     name: string | null;
     image: string | null;
     username: string | null;
+  } | null;
+  user?: {
+    name: string | null;
+    image: string | null;
+    username: string | null;
+  } | null;
+  organization?: {
+    name: string;
+    logo: string | null;
+    slug: string | null;
   } | null;
   version: string;
   latestVersion: string;

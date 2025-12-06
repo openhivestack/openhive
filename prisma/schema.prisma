@@ -196,10 +196,15 @@ model Agent {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
+  // Verified Agent Hub (EE)
+  verificationStatus String   @default("UNVERIFIED") // "UNVERIFIED", "PENDING", "VERIFIED", "REJECTED"
+  verifiedAt         DateTime?
+
   @@map("agent")
   @@index([name,did])
   @@index([userId])
   @@index([organizationId])
+  @@index([verificationStatus])
 }
 
 model AgentVersion {

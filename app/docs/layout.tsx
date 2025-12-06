@@ -5,10 +5,10 @@ import { source } from "@/lib/source";
 import { AppSidebar } from "@/components/app-sidebar";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 
-import { getNavConfig } from "@/lib/navigation";
+import { getComputedNavigation } from "@/lib/features";
 
 export default async function Layout({ children }: { children: ReactNode }) {
-  const navConfig = await getNavConfig();
+  const navItems = await getComputedNavigation();
   return (
     <SidebarProvider>
       <SidebarInset>
@@ -19,7 +19,7 @@ export default async function Layout({ children }: { children: ReactNode }) {
             collapsible: false,
             component: (
               <Suspense>
-                <AppSidebar tree={source.pageTree} navMain={navConfig.navMain} />
+                <AppSidebar tree={source.pageTree} navMain={navItems} />
               </Suspense>
             ),
           }}

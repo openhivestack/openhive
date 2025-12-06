@@ -1,5 +1,3 @@
-"use client";
-
 import { Logo } from "@/components/logo";
 import Link from "next/link";
 import { CommandBox } from "@/components/command-box";
@@ -13,27 +11,19 @@ import {
   TooltipTrigger,
   TooltipContent,
 } from "@/components/ui/tooltip";
-import { Book, Bot, Flame, Info, LogIn, Star } from "lucide-react";
+import { Info, Star } from "lucide-react";
 import { AnimatedGradientText } from "@/components/ui/animated-gradient-text";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ShineBorder } from "@/components/ui/shine-border";
 import { Button } from "@/components/ui/button";
-import { useSession } from "@/lib/auth-client";
-import { Spinner } from "@/components/ui/spinner";
-import { AnimatedThemeToggler } from "@/components/ui/animated-theme-toggler";
+import { Display, getComputedNavigation } from "@/lib/features";
+import Image from "next/image";
 
-export default function HomePage() {
-  const { data, isPending } = useSession();
-  const isLoggedIn = !!data;
+import { HomeNavItem } from "@/components/home-nav-item";
+import { UserProfile } from "@/components/user-profile";
 
-  if (isPending) {
-    return (
-      <div className="flex items-center justify-center h-screen w-screen">
-        <Spinner className="text-primary size-7" />
-      </div>
-    );
-  }
-
+export default async function HomePage() {
+  const navItems = await getComputedNavigation();
   return (
     <main className="min-h-screen bg-background text-foreground flex flex-col gap-10">
       <div className="w-full flex items-center gap-2 -mb-10 border-b bg-secondary py-2.5">
@@ -60,22 +50,14 @@ export default function HomePage() {
             </Link>
           </div>
 
-          <div className="flex items-center gap-4">
-            <Button size="sm" variant="outline" asChild>
-              {isLoggedIn ? (
-                <Link href="/agent/list" className="text-foreground">
-                  <Bot className="mr-1 size-4" />
-                  Agents
-                </Link>
-              ) : (
-                <Link href="/login" className="text-foreground">
-                  <LogIn className="mr-1 size-4" />
-                  Login
-                </Link>
-              )}
-            </Button>
+          <div className="flex items-center gap-2">
+            {navItems.map((item) => {
+              if (item.display.includes(Display.Home)) {
+                return <HomeNavItem key={item.name} item={item} />;
+              }
+            })}
 
-            <AnimatedThemeToggler variant="ghost" size="icon" />
+            <UserProfile showText />
           </div>
         </div>
       </div>
@@ -123,9 +105,9 @@ export default function HomePage() {
         <Card className="relative w-full max-w-[350px] overflow-hidden mx-auto">
           <ShineBorder shineColor={["#A07CFE", "#FE8FB5", "#FFBE7B"]} />
           <CardHeader className="items-center">
-            <CardTitle>Source Scaffolding</CardTitle>
+            <CardTitle>Code Generation</CardTitle>
             <CardDescription>
-              Scaffold verified agent patterns directly into your codebase. No
+              Generate verified agent patterns directly into your codebase. No
               black boxes—you own the logic.
             </CardDescription>
           </CardHeader>
@@ -425,7 +407,7 @@ export default function HomePage() {
               GitHub
             </a>
             <a
-              href="mailto:support@openhive.sh"
+              href="mailto:support@openhive.cloud"
               className="text-sm text-muted-foreground hover:text-primary transition-colors"
             >
               Support
@@ -463,9 +445,14 @@ export default function HomePage() {
             </a>
             <a
               href="https://discord.gg/qsfG2tJ6mJ"
-              className="text-muted-foreground hover:text-primary transition-colors"
+              className="text-muted-foreground hover:text-primary transition-colors opacity-80 hover:opacity-100 transition-opacity"
             >
-              <Flame className="size-4" />
+              <Image
+                src="/discord.png"
+                alt="Discord"
+                width={20}
+                height={20}
+              />
             </a>
           </div>
         </div>

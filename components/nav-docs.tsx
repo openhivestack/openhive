@@ -22,15 +22,15 @@ export function NavDocs({
 
   return (
     <SidebarGroup className="group-data-[collapsible=icon]:hidden">
-      <SidebarGroupLabel>Get Started</SidebarGroupLabel>
+      <SidebarGroupLabel className="text-muted-foreground/70">Get Started</SidebarGroupLabel>
       <SidebarMenu>
         {tree.children.map((item: any) => (
           <div key={item.name}>
             {item.type === 'separator' ? (
-              <SidebarGroupLabel className="mt-4 text-muted-foreground">{item.name}</SidebarGroupLabel>
+              <SidebarGroupLabel className="mt-4 text-muted-foreground/70">{item.name}</SidebarGroupLabel>
             ) : (
               <SidebarMenuItem key={item.name}>
-                <SidebarMenuButton asChild className="hover:bg-primary/10 hover:text-primary">
+                <SidebarMenuButton asChild className="hover:bg-transparent hover:text-primary text-foreground/80">
                   <Link href={item.url} className={pathname === item.url ? 'text-primary bg-primary/10' : ''}>
                     <span>{item.name}</span>
                   </Link>

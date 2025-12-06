@@ -97,12 +97,22 @@ export async function POST(req: NextRequest) {
             orderBy: { createdAt: "desc" },
             take: 1,
           },
+          organization: {
+            select: {
+              name: true,
+              logo: true,
+              slug: true
+            }
+          },
           user: {
             select: {
               name: true,
               image: true,
               username: true,
             },
+          },
+          _count: {
+            select: { executions: true },
           },
         },
       }),

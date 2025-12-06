@@ -27,7 +27,7 @@ import {
 } from "@/components/ui/chart";
 import colors from "tailwindcss/colors";
 import { Item, ItemMedia, ItemContent, ItemTitle } from "@/components/ui/item";
-import { AgentCard } from "@/components/agent-card";
+
 import { AgentVersions } from "@/components/agent-versions";
 import {
   Table,
@@ -45,7 +45,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { DateTime } from "luxon";
-import { Terminal, Zap, ChevronLeft, ChevronRight } from "lucide-react";
+import { Terminal, Zap, ChevronLeft, ChevronRight, Cpu } from "lucide-react";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Badge } from "@/components/ui/badge";
 import useSWR from "swr";
 import { AgentDetail, api } from "@/lib/api-client";
 
@@ -163,7 +169,7 @@ export default function AgentOverviewPage() {
 
   if (loading) {
     return (
-      <div className="space-y-4">
+      <div className="space-y-4 px-4 py-4">
         <Skeleton className="h-12 w-1/3" />
         <Skeleton className="h-64 w-full" />
       </div>
@@ -331,14 +337,114 @@ export default function AgentOverviewPage() {
               </CardDescription>
             </CardHeader>
             <CardContent className="px-0">
-              <AgentCard info={agent} />
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Item
+                    variant="ghost"
+                    size="xs"
+                    className="hover:text-primary cursor-pointer"
+                  >
+                    <ItemMedia>
+                      <Terminal className="size-3" />
+                    </ItemMedia>
+                    <ItemContent>
+                      <ItemTitle className="text-xs">Skills</ItemTitle>
+                    </ItemContent>
+                  </Item>
+                </PopoverTrigger>
+                <PopoverContent className="w-80">
+                  <div className="grid gap-4">
+                    <div className="space-y-2">
+                      <h4 className="font-medium leading-none">Skills</h4>
+                      <p className="text-xs text-muted-foreground">
+                        Registered skills for this agent.
+                      </p>
+                    </div>
+                    {agent.skills && agent.skills.length > 0 ? (
+                      <div className="flex flex-wrap gap-2">
+                        {agent.skills.map((skill: any) => (
+                          <Badge key={skill.id || skill} variant="secondary" className="text-xs">
+                            {typeof skill === "string" ? skill : skill.name}
+                          </Badge>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-sm text-muted-foreground">
+                        No skills found.
+                      </div>
+                    )}
+                  </div>
+                </PopoverContent>
+              </Popover>
+
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Item
+                    variant="ghost"
+                    size="xs"
+                    className="hover:text-primary cursor-pointer"
+                  >
+                    <ItemMedia>
+                      <Cpu className="size-3" />
+                    </ItemMedia>
+                    <ItemContent>
+                      <ItemTitle className="text-xs">Capabilities</ItemTitle>
+                    </ItemContent>
+                  </Item>
+                </PopoverTrigger>
+                <PopoverContent className="w-80">
+                  <div className="grid gap-4">
+                    <div className="space-y-2">
+                      <h4 className="font-medium leading-none">Capabilities</h4>
+                      <p className="text-xs text-muted-foreground">
+                        Capabilities exposed by this agent.
+                      </p>
+                    </div>
+                    {(() => {
+                      // Normalize capabilities to array
+                      let caps: any[] = [];
+                      if (Array.isArray(agent.capabilities)) {
+                        caps = agent.capabilities;
+                      } else if (
+                        agent.capabilities &&
+                        typeof agent.capabilities === "object"
+                      ) {
+                        caps = Object.keys(agent.capabilities).filter(
+                          (k) => agent.capabilities[k] === true
+                        );
+                      }
+
+                      if (caps.length > 0) {
+                        return (
+                          <div className="flex flex-wrap gap-2">
+                            {caps.map((cap: any) => (
+                              <Badge
+                                key={cap.id || cap}
+                                variant="secondary"
+                                className="text-xs"
+                              >
+                                {typeof cap === "string" ? cap : cap.name}
+                              </Badge>
+                            ))}
+                          </div>
+                        );
+                      }
+                      return (
+                        <div className="text-sm text-muted-foreground">
+                          No capabilities found.
+                        </div>
+                      );
+                    })()}
+                  </div>
+                </PopoverContent>
+              </Popover>
               <Item
                 variant="ghost"
                 size="xs"
                 asChild
                 className="hover:text-primary"
               >
-                <a href={`/agent/${agentName}/logs`}>
+                <a href={`/agent/${agentName}/logs`} className="[a]:hover:bg-transparent">
                   <ItemMedia>
                     <ActivityIcon className="size-3" />
                   </ItemMedia>

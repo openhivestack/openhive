@@ -10,16 +10,7 @@
     "lint": "eslint",
     "ui": "npx shadcn@latest",
     "commit": "git add . && cz && git pull --rebase && git push",
-    "generate": "prisma generate",
-    "migrate": "prisma migrate dev",
-    "reset": "prisma migrate reset",
-    "studio": "prisma studio",
-    "update": "ts-node prisma/update.ts",
-    "seed": "ts-node prisma/seed.ts",
-    "tf:init": "terraform -chdir=terraform init",
-    "tf:plan": "terraform -chdir=terraform plan",
-    "tf:apply": "terraform -chdir=terraform apply",
-    "tf:destroy": "terraform -chdir=terraform destroy"
+    "seed": "ts-node prisma/seed.ts"
   },
   "dependencies": {
     "@ai-sdk/google": "^2.0.44",

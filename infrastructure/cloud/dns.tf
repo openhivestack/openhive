@@ -22,7 +22,7 @@ resource "aws_route53_record" "gateway_validation" {
 }
 
 # --- ALB Alias Record ---
-# This points https://gateway-dev.openhive.sh to the ALB
+# This points https://gateway-dev.openhive.cloud to the ALB
 resource "aws_route53_record" "gateway_alb" {
   zone_id = aws_route53_zone.gateway.zone_id
   name    = "${var.gateway_subdomain}-${var.environment}.${var.domain_name}"

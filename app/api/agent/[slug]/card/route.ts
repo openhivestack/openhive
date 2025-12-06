@@ -26,6 +26,13 @@ export async function GET(
           username: true,
         },
       },
+      organization: {
+        select: {
+          name: true,
+          logo: true,
+          slug: true,
+        },
+      },
     },
   });
 
@@ -34,7 +41,7 @@ export async function GET(
   }
 
   // 2. Access Control
-  // If not public, user must be logged in and be the owner (or member of org - logic omitted for simplicity)
+  // If not public, user must be logged in and be the owner
   if (!agent.isPublic) {
     if (!auth?.user || agent.userId !== auth.user.id) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -57,6 +64,12 @@ export async function GET(
   }
 
   // 5. Construct Response
+  const creator = agent.user || (agent.organization ? {
+      name: agent.organization.name,
+      image: agent.organization.logo,
+      username: agent.organization.slug
+  } : null);
+
   const card = {
     // Spread Agent Card Metadata first (so DB fields override if collision occurs, or vice versa?)
     // User asked to "spread anything for the agentCard", usually meaning it enriches the base object.
@@ -74,7 +87,7 @@ export async function GET(
     updatedAt: agent.updatedAt,
 
     // Derived / Relational Info
-    creator: agent.user,
+    creator: creator,
     version: latestVersion?.version || "0.0.0",
     latestVersion: latestVersion?.version || "0.0.0", // Explicit field
     installCount: latestVersion?.installCount || 0,
