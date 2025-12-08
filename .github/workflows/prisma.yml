@@ -1,7 +1,11 @@
 name: Prisma
 
 on:
-  workflow_dispatch:
+  push:
+    paths:
+      - 'prisma/**'
+    branches:
+      - main
 
 jobs:
   prisma:
@@ -24,4 +28,3 @@ jobs:
         run: prisma migrate deploy
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          DIRECT_URL: ${{ secrets.DIRECT_URL }}

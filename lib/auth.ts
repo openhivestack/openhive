@@ -30,47 +30,68 @@ if (process.env.GH_CLIENT_ID && process.env.GH_CLIENT_SECRET) {
   };
 }
 
-export const auth = betterAuth({
-  baseURL: process.env.BETTER_AUTH_URL,
-  account: {
-    accountLinking: {
+// Define default plugins
+const defaultPlugins = [
+  admin(),
+  organization(),
+  nextCookies(),
+  bearer(), // Enable Bearer token authentication
+  oneTimeToken({
+    expiresIn: 60 * 5, // 5 minutes
+  }),
+  username(),
+  deviceAuthorization({
+    // Optional configuration
+    expiresIn: "5m", // Device code expiration time
+    interval: "5s", // Minimum polling interval
+  }),
+  apiKey({
+    rateLimit: {
+      enabled: true,
+      timeWindow: 60, // 1 minute
+      maxRequests: 1000, // 1000 requests per minute for staging
+    },
+  }),
+];
+
+// Async function to create auth instance
+async function createAuth() {
+  let plugins: any[] = [...defaultPlugins];
+  
+  try {
+    // @ts-ignore - EE module might not exist
+    const eeModule = await import("@/ee/lib/auth.config");
+    if (eeModule?.eeAuthConfig?.plugins) {
+      plugins = [...plugins, ...eeModule.eeAuthConfig.plugins];
+    }
+  } catch (e) {
+    // Ignore missing EE module
+  }
+
+  return betterAuth({
+    baseURL: process.env.BETTER_AUTH_URL,
+    account: {
+      accountLinking: {
+        enabled: true,
+      },
+    },
+    trustedOrigins: process.env.TRUSTED_ORIGINS?.split(",") || [],
+    database: prismaAdapter(prisma, {
+      provider: "postgresql",
+    }),
+    databaseHooks: {
+      user: {},
+    },
+    socialProviders,
+    emailAndPassword: {
       enabled: true,
     },
-  },
-  trustedOrigins: process.env.TRUSTED_ORIGINS?.split(",") || [],
-  database: prismaAdapter(prisma, {
-    provider: "postgresql",
-  }),
-  databaseHooks: {
-    user: {},
-  },
-  socialProviders,
-  emailAndPassword: {
-    enabled: true,
-  },
-  plugins: [
-    admin(),
-    organization(),
-    nextCookies(),
-    bearer(), // Enable Bearer token authentication
-    oneTimeToken({
-      expiresIn: 60 * 5, // 5 minutes
-    }),
-    username(),
-    deviceAuthorization({
-      // Optional configuration
-      expiresIn: "5m", // Device code expiration time
-      interval: "5s", // Minimum polling interval
-    }),
-    apiKey({
-      rateLimit: {
-        enabled: true,
-        timeWindow: 60, // 1 minute
-        maxRequests: 1000, // 1000 requests per minute for staging
-      },
-    }),
-  ],
-});
+    plugins: plugins as typeof defaultPlugins,
+  });
+}
+
+// Export the auth instance (top-level await)
+export const auth = await createAuth();
 
 export type ValidationResult = {
   session: {
@@ -104,7 +125,8 @@ export async function validateAuth(): Promise<ValidationResult | null> {
       if (result && result.key) {
         // If the API key is valid but user object is missing (which seems to be happening),
         // fetch the user from the database using the userId from the key.
-        // @ts-expect-error - user is not typed in the result
+        // If the API key is valid but user object is missing (which seems to be happening),
+        // @ts-ignore
         let user = result.user;
 
         if (!user && result.key.userId) {

@@ -46,7 +46,7 @@ export function AgentVersions({
           version: v.version,
           createdAt: v.createdAt,
           description: "",
-          downloadCount: v.installCount,
+          downloadCount: 0,
         }))
       );
     } catch (error) {

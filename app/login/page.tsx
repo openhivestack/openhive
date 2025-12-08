@@ -22,6 +22,7 @@ export default function Page() {
   const handleSocialLogin = (provider: string) => {
     void signIn.social({
       provider: provider as "github",
+      callbackURL: "/agent/list",
     });
   };
 
@@ -35,27 +36,27 @@ export default function Page() {
           email,
           password,
           name,
-          callbackURL: "/",
+          callbackURL: "/agent/list",
         });
 
         if (error) {
           toast.error(error.message);
         } else {
           // Explicitly redirect on success
-          router.push("/");
+          router.push("/agent/list");
         }
       } else {
         const { error } = await signIn.email({
           email,
           password,
-          callbackURL: "/",
+          callbackURL: "/agent/list",
         });
 
         if (error) {
           toast.error(error.message);
         } else {
           // Explicitly redirect on success
-          router.push("/");
+          router.push("/agent/list");
         }
       }
     } catch (err) {
@@ -169,11 +170,11 @@ export default function Page() {
 
       <div className="text-muted-foreground *:[a]:hover:text-primary text-center text-xs text-balance *:[a]:underline *:[a]:underline-offset-4 w-56 mt-4">
         By clicking continue, you agree to our{" "}
-        <a href="https://docs.openhive.sh/terms-of-service" target="_blank">
+        <a href="https://docs.openhive.cloud/terms-of-service" target="_blank">
           Terms of Service
         </a>{" "}
         and{" "}
-        <a href="https://docs.openhive.sh/privacy-policy" target="_blank">
+        <a href="https://docs.openhive.cloud/privacy-policy" target="_blank">
           Privacy Policy
         </a>
         .

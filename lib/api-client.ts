@@ -1,4 +1,5 @@
 import type { Agent, User } from "@prisma/client";
+export type { Agent, User };
 
 // Ensure BASE_URL is empty string for same-origin requests (default for Next.js app routes)
 // If running server-side or in a different environment, this might need adjustment.
@@ -19,7 +20,7 @@ export interface PaginatedResponse<T> {
 export interface AgentVersion {
   version: string;
   createdAt: string;
-  installCount: number;
+
 }
 
 export interface AgentTask {
@@ -56,16 +57,31 @@ export type AgentStatus =
   | "FAILED"
   | "UNKNOWN";
 
-export interface AgentDetail extends Agent {
+export interface AgentDetail extends Omit<Agent, "createdAt" | "updatedAt"> {
+  createdAt: string | Date;
+  updatedAt: string | Date;
   creator: {
     name: string | null;
     image: string | null;
     username: string | null;
   } | null;
+  user?: {
+    name: string | null;
+    image: string | null;
+    username: string | null;
+  } | null;
+  organization?: {
+    name: string;
+    logo: string | null;
+    slug: string | null;
+  } | null;
   version: string;
   latestVersion: string;
-  installCount: number;
+
   status: string;
+  _count?: {
+    executions: number;
+  };
   [key: string]: any; // For extra properties from agent-card
 }
 

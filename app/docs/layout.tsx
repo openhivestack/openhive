@@ -5,7 +5,12 @@ import { source } from "@/lib/source";
 import { AppSidebar } from "@/components/app-sidebar";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 
-export default function Layout({ children }: { children: ReactNode }) {
+import { getFilteredNavigation } from "@/lib/features";
+import { validateAuth } from "@/lib/auth";
+
+export default async function Layout({ children }: { children: ReactNode }) {
+  const result = await validateAuth();
+  const navItems = await getFilteredNavigation(result?.user);
   return (
     <SidebarProvider>
       <SidebarInset>
@@ -16,7 +21,7 @@ export default function Layout({ children }: { children: ReactNode }) {
             collapsible: false,
             component: (
               <Suspense>
-                <AppSidebar tree={source.pageTree} />
+                <AppSidebar tree={source.pageTree} navMain={navItems} />
               </Suspense>
             ),
           }}

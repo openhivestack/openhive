@@ -1,21 +1,14 @@
 "use client";
 
 import * as React from "react";
-import {
-  CircleQuestionMark,
-  Settings2,
-  SquareTerminal,
-} from "lucide-react";
 
 import { NavMain } from "@/components/nav-main";
 import { NavUser } from "@/components/nav-user";
-import Link from "next/link";
 import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
   SidebarHeader,
-  SidebarMenuButton,
   SidebarRail,
 } from "@/components/ui/sidebar";
 import { Logo } from "./logo";
@@ -24,28 +17,27 @@ import { NavDocs } from "./nav-docs";
 
 interface AppSidebarProps {
   tree: any;
+  navMain: {
+    name: string;
+    url: string;
+    icon: string;
+    className?: string;
+    isActive?: boolean;
+  }[];
 }
 
-export function AppSidebar({ tree, ...props }: AppSidebarProps & React.ComponentProps<typeof Sidebar>) {
+export function AppSidebar({ tree, navMain, ...props }: AppSidebarProps & React.ComponentProps<typeof Sidebar>) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  const data = {
-    navMain: [
-      {
-        name: "My Agents",
-        url: "/agent/list",
-        isActive: pathname.startsWith("/agent/list") && searchParams.get("q") === null,
-        icon: SquareTerminal,
-      },
-      {
-        name: "Settings",
-        url: "/settings",
-        isActive: pathname.startsWith("/settings"),
-        icon: Settings2,
-      },
-    ],
-  };
+  // Process items to add isActive state and map icons
+  const processedNavMain = navMain.map((item) => ({
+    ...item,
+    icon: item.icon || 'square-terminal', // Fallback icon
+    className: item.className || '',
+    isActive: item.isActive ?? (pathname.startsWith(item.url) && (item.url !== "/agent/list" || searchParams.get("q") === null)),
+  }));
+
 
   return (
     <Sidebar collapsible="icon" {...props}>
@@ -55,13 +47,13 @@ export function AppSidebar({ tree, ...props }: AppSidebarProps & React.Component
         </div>
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={data.navMain} />
+        <NavMain items={processedNavMain} />
         <NavDocs tree={tree} />
       </SidebarContent>
       <SidebarFooter>
         {/* <SidebarMenuButton className="text-sidebar-foreground/70">
           <Link
-            href="https://docs.openhive.sh/docs/core/quick-start"
+            href="https://docs.openhive.cloud/docs/core/quick-start"
             target="_blank"
             className="flex items-center gap-2"
           >

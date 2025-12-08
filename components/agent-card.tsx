@@ -1,27 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  BotIcon,
-  Copy,
-  Cpu,
-  FileJson,
-  IdCard,
-  Shield,
-  Check,
-  X,
-  Layers,
-} from "lucide-react";
-import { Item, ItemMedia, ItemContent, ItemTitle } from "@/components/ui/item";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { Label } from "@/components/ui/label";
-
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { Globe, ShieldCheck, Lock, LockOpen, Code2 } from "lucide-react";
+import { AgentDetail } from "@/lib/api-client";
+import { cn } from "@/lib/utils";
 import {
   Tooltip,
   TooltipContent,
@@ -29,202 +14,115 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
-import { api, AgentDetail } from "@/lib/api-client";
-
 interface AgentCardProps {
-  info: Partial<AgentDetail>;
+  agent: Omit<Partial<AgentDetail>, 'latestVersion'> & {
+    latestVersion?: string | null;
+    protocolVersion?: string | null;
+    user?: { name: string | null } | null;
+    organization?: { name: string | null } | null;
+    _count?: { executions: number };
+  };
+  className?: string;
+  showVerification?: boolean;
+  baseHref?: string;
 }
 
-export function AgentCard({ info }: AgentCardProps) {
-  const [agent, setAgent] = useState<Partial<AgentDetail>>(info);
-
-  const fetchLiveCard = async () => {
-    if (!info.name) return;
-    try {
-      const data = await api.agent.card(info.name);
-      setAgent(data);
-    } catch (error) {
-      console.error("Failed to fetch live card:", error);
-    }
-  };
+export function AgentCard({ agent, className, showVerification = true, baseHref = "/agent" }: AgentCardProps) {
+  const isVerified = agent.verificationStatus === "VERIFIED";
+  const agentLink = baseHref === "/agent" ? `${baseHref}/${agent.name}/overview` : `${baseHref}/${agent.name}`;
 
   return (
-    <Popover
-      onOpenChange={(open) => {
-        if (open) fetchLiveCard();
-      }}
-    >
-      <PopoverTrigger asChild>
-        <Item variant="ghost" size="xs" asChild className="hover:text-primary">
-          <a href="#">
-            <ItemMedia>
-              <IdCard className="size-3" />
-            </ItemMedia>
-            <ItemContent>
-              <ItemTitle className="text-xs">Agent Card</ItemTitle>
-            </ItemContent>
-          </a>
-        </Item>
-      </PopoverTrigger>
-      <PopoverContent className="w-80 p-0" align="start">
-        <div className="flex items-center gap-3 border-b p-4 bg-muted/30">
-          <div className="flex size-10 items-center justify-center rounded-full border bg-background">
-            <BotIcon className="size-5 text-muted-foreground" />
+    <Card className={cn("group hover:shadow-xl hover:-translate-y-1 transition-all duration-300 border-primary/10 bg-secondary/30 backdrop-blur-sm overflow-hidden relative pb-0", className)}>
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+      <CardHeader>
+        <div className="flex justify-between items-start relative z-10">
+          <div className="flex items-center gap-2">
+            {showVerification && isVerified ? (
+              <Badge variant="outline" className="bg-background/50 backdrop-blur border-primary/20 text-primary gap-1 shadow-sm">
+                <ShieldCheck className="w-3 h-3" /> Verified
+              </Badge>
+            ) : (
+              <Badge variant="outline" className="bg-background/50 backdrop-blur border-muted-foreground/20 text-muted-foreground gap-1 shadow-sm">
+                {agent.isPublic ? <LockOpen className="w-3 h-3" /> : <Lock className="w-3 h-3" />}
+                {agent.isPublic ? "Public" : "Private"}
+              </Badge>
+            )}
           </div>
-          <div className="flex-1 space-y-1">
-            <h4 className="font-semibold leading-none">{agent.name}</h4>
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <span>v{agent.latestVersion || agent.version}</span>
-              <span>•</span>
-              <span>A2A v{agent.protocolVersion || "0.0.0"}</span>
-            </div>
+          <div className="flex items-center gap-2">
+            {agent.organization && (
+              <Badge variant="secondary" className="text-xs bg-secondary/50">
+                {agent.organization.name}
+              </Badge>
+            )}
+            {agent.runtime && ['node', 'python'].includes(agent.runtime.toLowerCase()) && (
+              <div className="relative h-6 w-6 rounded-full bg-muted/50 p-1 ring-1 ring-border/50 overflow-hidden shrink-0">
+                <img
+                  src={`/${agent.runtime.toLowerCase()}.png`}
+                  alt={agent.runtime}
+                  className="h-full w-full object-contain"
+                />
+              </div>
+            )}
           </div>
         </div>
-        <div className="grid gap-4 p-4">
-          <div className="grid gap-1.5">
-            <Label className="text-xs text-muted-foreground">
-              Endpoint URL
-            </Label>
-            <div className="flex items-center gap-2 min-w-0 w-full">
-              <code className="flex-1 rounded bg-muted px-2 py-1 text-xs font-mono truncate min-w-0">
-                {agent.url || "N/A"}
-              </code>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="size-6 shrink-0"
-                onClick={() =>
-                  agent.url && navigator.clipboard.writeText(agent.url)
-                }
-                disabled={!agent.url}
-              >
-                <Copy className="size-3" />
+        <CardTitle className="text-md group-hover:text-primary transition-colors relative z-10 flex items-center gap-2">
+          <Link href={agentLink} className="hover:underline underline-offset-4 decoration-primary/50">
+            {agent.name}
+          </Link>
+        </CardTitle>
+        <CardDescription className="line-clamp-2 min-h-[2.5rem] relative z-10 text-xs">
+          {agent.description || "No description provided."}
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="relative z-10">
+        <div className="flex flex-wrap gap-1.5 mb-4">
+          {agent.tags && agent.tags.length > 0 ? agent.tags.map((tag: string) => (
+            <Badge key={tag} variant="secondary" className="text-xs px-2 py-0.5 bg-secondary/30 hover:bg-secondary/50 transition-colors">
+              #{tag}
+            </Badge>
+          )) : (
+            <Badge variant="outline" className="text-xs px-2 py-0.5 border-dashed text-muted-foreground/50">
+              No tags
+            </Badge>
+          )}
+        </div>
+        <div className="text-xs text-muted-foreground flex items-center gap-2 border-t pt-3 border-border/50">
+          <span>Maintained by <span className="font-medium text-foreground">{agent.user?.name || "Unknown"}</span></span>
+        </div>
+      </CardContent>
+      <CardFooter className="flex justify-between items-center bg-muted/20 py-3 relative z-10">
+        <div className="text-xs font-medium text-muted-foreground flex items-center gap-2">
+          <span className="flex items-center gap-1">
+            v{agent.latestVersion || "0.0.1"}
+          </span>
+          {agent.protocolVersion && (
+            <>
+              <span className="text-muted-foreground/30">•</span>
+              <span className="text-muted-foreground/70" title="A2A Protocol Version">
+                A2A v{agent.protocolVersion}
+              </span>
+            </>
+          )}
+          <span className="text-muted-foreground/30">•</span>
+          <span title="Total Executions">
+            <span className="text-primary">{agent._count?.executions || 0}</span> runs
+          </span>
+        </div>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button asChild size="icon" variant="ghost" className="hover:bg-primary/10 hover:text-primary h-8 w-8">
+                <Link href={agentLink}>
+                  <Globe className="w-4 h-4" />
+                </Link>
               </Button>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="grid gap-1.5">
-              <Label className="text-xs text-muted-foreground flex items-center gap-1">
-                <Layers className="size-3" /> Runtime
-              </Label>
-              <div className="flex items-center gap-2">
-                {agent.runtime ? (
-                  <Badge
-                    variant="secondary"
-                    className="text-[10px] px-1.5 h-5 font-normal capitalize"
-                  >
-                    {agent.runtime}
-                  </Badge>
-                ) : (
-                  <span className="text-xs text-muted-foreground italic">
-                    -
-                  </span>
-                )}
-              </div>
-            </div>
-
-            <div className="grid gap-1.5">
-              <Label className="text-xs text-muted-foreground flex items-center gap-1">
-                <Cpu className="size-3" /> Skills
-              </Label>
-              <div className="flex flex-wrap gap-1">
-                {agent.skills && agent.skills.length > 0 ? (
-                  <>
-                    {agent.skills.slice(0, 3).map((skill: any) => (
-                      <Badge
-                        key={skill.id}
-                        variant="outline"
-                        className="text-[10px] px-1.5 h-5 font-normal"
-                      >
-                        {skill.name || skill.id}
-                      </Badge>
-                    ))}
-                    {agent.skills.length > 3 && (
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Badge
-                              variant="outline"
-                              className="text-[10px] px-1.5 h-5 font-normal cursor-help"
-                            >
-                              +{agent.skills.length - 3}
-                            </Badge>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <div className="flex flex-col gap-1">
-                              {agent.skills.slice(3).map((skill: any) => (
-                                <span key={skill.id} className="text-xs">
-                                  {skill.name || skill.id}
-                                </span>
-                              ))}
-                            </div>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    )}
-                  </>
-                ) : (
-                  <span className="text-xs text-muted-foreground italic">
-                    -
-                  </span>
-                )}
-              </div>
-            </div>
-          </div>
-
-          <div className="grid gap-1.5">
-            <Label className="text-xs text-muted-foreground flex items-center gap-1">
-              <Shield className="size-3" /> Capabilities
-            </Label>
-            <div className="flex flex-wrap gap-2 w-full">
-              {agent.capabilities &&
-              Object.keys(agent.capabilities).length > 0 ? (
-                Object.entries(agent.capabilities).map(([key, enabled]) => (
-                  <Badge
-                    key={key}
-                    variant={enabled ? "default" : "outline"}
-                    className={`text-[10px] px-2 py-0.5 h-5 font-normal capitalize ${
-                      !enabled && "text-muted-foreground opacity-60"
-                    }`}
-                  >
-                    <span className="mr-1.5">
-                      {enabled ? (
-                        <Check className="size-2.5" />
-                      ) : (
-                        <X className="size-2.5" />
-                      )}
-                    </span>
-                    {key.replace(/([A-Z])/g, " $1").trim()}
-                  </Badge>
-                ))
-              ) : (
-                <span className="text-xs text-muted-foreground italic">-</span>
-              )}
-            </div>
-          </div>
-        </div>
-        <div className="border-t bg-muted/30 p-2 flex justify-end">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-7 text-xs gap-1.5"
-            asChild
-            disabled={!agent.url}
-          >
-            <a
-              href={
-                agent.url ? `${agent.url}/.well-known/agent-card.json` : "#"
-              }
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <FileJson className="size-3.5" />
-              View Raw JSON
-            </a>
-          </Button>
-        </div>
-      </PopoverContent>
-    </Popover>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>View Details</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      </CardFooter>
+    </Card>
   );
 }

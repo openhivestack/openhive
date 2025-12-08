@@ -39,7 +39,7 @@ export const AgentHeader = () => {
             <div className="flex items-center gap-2">
               <h1 className="text-sm font-bold">{agent.name}</h1>
             </div>
-            <p className="text-xs text-muted-foreground flex items-center gap-1">
+            <div className="text-xs text-muted-foreground flex items-center gap-1">
               {agent.version}
               <span className="text-sm text-muted-foreground font-bold">•</span>
               {agent.private ? (
@@ -60,7 +60,7 @@ export const AgentHeader = () => {
                   {runtimeStatus === "RUNNING" ? "Running" : runtimeStatus}
                 </Badge>
               )}
-            </p>
+            </div>
           </div>
         </div>
         <div className="flex gap-2">

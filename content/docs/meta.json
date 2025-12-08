@@ -7,20 +7,16 @@
     "guides/building-agents",
     "guides/testing",
     "guides/deployment",
-    "---Concepts---",
-    "concepts/agents",
-    "concepts/a2a-protocol",
-    "concepts/registry",
-    "concepts/security",
+    "---Registry---",
+    "registry/overview",
+    "registry/architecture",
+    "registry/self-hosting",
+    "registry/protocol",
+    "registry/security",
     "---Tutorials---",
     "tutorials/first-agent",
     "tutorials/chat-agent",
     "tutorials/task-automation",
-    "tutorials/orchestration",
-    "---API Reference---",
-    "api-reference/cli",
-    "---Resources---",
-    "resources/faq",
-    "resources/contributing"
+    "tutorials/orchestration"
   ]
 }

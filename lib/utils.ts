@@ -8,7 +8,7 @@ export function cn(...inputs: ClassValue[]) {
 /**
  * Generates a DID (Decentralized Identifier) for OpenHive resources.
  * Format: {registry}:{classification}:{uuid}
- * Example: openhive:agent:123e4567-e89b-12d3-a456-426614174000
+ * Example: hive:agent:123e4567-e89b-12d3-a456-426614174000
  */
 export function generateDid(
   registry: string = "openhive",

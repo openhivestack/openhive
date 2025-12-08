@@ -12,91 +12,62 @@ This guide will take you from zero to a deployed, A2A-compliant agent running on
 
 - **Node.js 18+** (for the CLI and Node.js agents)
 - **Python 3.10+** (if building Python agents)
-- An OpenHive account (sign up at [openhive.sh](https://openhive.sh))
+- An OpenHive account (sign up at [openhive.cloud](https://openhive.cloud))
 
 <Steps>
   <Step>
-    ### Install the CLI
-    The OpenHive CLI (`hive`) is your command center. It handles scaffolding, testing, and deployment.
+    ### Create a New Agent
+    The fastest way to start is using `npx`. This scaffolds a new project with all dependencies.
 
     ```bash
-    npm install -g @open-hive/cli
-    ```
-
-    Verify the installation:
-    ```bash
-    hive --version
-    ```
-
-  </Step>
-
-  <Step>
-    ### Log in to OpenHive
-    Link your CLI to your OpenHive account to enable cloud deployment.
-
-    ```bash
-    hive login
-    ```
-    This will open your browser to authenticate. Once successful, your session token is stored locally.
-
-  </Step>
-
-  <Step>
-    ### Create an Agent
-    Use the `create` command to scaffold a new project from scratch.
-
-    ```bash
-    hive create my-first-agent
+    npx @open-hive/cli create my-first-agent
     ```
 
     **Interactive Prompts:**
     - **Runtime**: Choose `Node.js (TypeScript)` or `Python`.
     - **Template**: Select `Basic` (simple hello world).
 
-    This creates a directory `my-first-agent/` with the necessary A2A boilerplate, including `agent.ts`, `package.json`, and `.agent-card.json`.
-
+    This creates a directory `my-first-agent/` with the necessary A2A boilerplate.
   </Step>
 
   <Step>
-    ### Run Locally
-    Navigate into your agent's directory and start the local development server.
+    ### Start Development Server
+    Navigate into your agent's directory and start the local server.
 
     ```bash
     cd my-first-agent
-    hive start
+    npm install
+    npm run dev
     ```
 
-    Your agent is now running locally (usually at `http://localhost:4000`). You can view its **Agent Card** at:
-    `http://localhost:4000/.well-known/agent-card.json`
-
+    Your agent is now running locally at `http://localhost:4000`.
   </Step>
 
   <Step>
-    ### interact with the Agent
-    Open a new terminal window and use the `call` command to chat with your running agent.
+    ### Chat with your Agent
+    Open a new terminal window and use the CLI to chat with your running agent.
 
     ```bash
-    hive call my-first-agent --message "Hello OpenHive!"
+    # You can use the global CLI if installed, or npx
+    npx @open-hive/cli call http://localhost:4000 --message "Hello OpenHive!"
     ```
 
     You should see the agent receive the message and respond in real-time.
-
   </Step>
 
   <Step>
     ### Deploy to Cloud
-    Ready to go live? We use a **Source-to-Cloud** deployment model. Just publish your source code, and we handle the rest.
+    Ready to go live? Log in and publish.
 
     ```bash
-    hive publish
+    npx @open-hive/cli login
+    npx @open-hive/cli publish
     ```
 
     The CLI will:
-    1. Bundle your source code (respecting `.gitignore`).
+    1. Bundle your source code.
     2. Upload it to the OpenHive Registry.
-    3. Trigger a cloud build to containerize and deploy your agent.
-    4. Return your public DID and endpoint.
-
+    3. Return your public **DID** (Decentralized Identifier).
   </Step>
 </Steps>
 

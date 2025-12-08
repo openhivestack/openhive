@@ -123,16 +123,6 @@ export function SubHeader({
       {/* Right section */}
       <div className="flex items-center gap-2">
         {children}
-        <Link
-          href="https://docs.openhive.sh/docs/core/quick-start"
-          target="_blank"
-          className="flex items-center gap-2"
-        >
-          <Button variant="ghost" size="sm" className="flex items-center gap-2">
-            <CircleQuestionMark className="size-4" />
-            <span className="text-xs font-medium">Help & First Steps</span>
-          </Button>
-        </Link>
       </div>
     </div>
   );

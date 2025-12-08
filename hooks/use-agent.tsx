@@ -8,7 +8,7 @@ import {
   ReactNode,
   useCallback,
 } from "react";
-import { AgentDetail } from "@/lib/api-client";
+import { AgentDetail, User } from "@/lib/api-client";
 import { api } from "@/lib/api-client";
 import useSWR, { KeyedMutator } from "swr";
 import { toast } from "sonner";
@@ -24,6 +24,8 @@ interface AgentContextType {
   togglingRuntime: boolean;
   toggleRuntime: () => Promise<void>;
   mutateRuntime: KeyedMutator<any>;
+  isOwner: boolean;
+  currentUser: User | null;
 }
 
 const AgentContext = createContext<AgentContextType | undefined>(undefined);
@@ -38,6 +40,9 @@ export function AgentProvider({ children, agentName }: AgentProviderProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const [togglingRuntime, setTogglingRuntime] = useState(false);
+
+  // Fetch current user
+  const { data: currentUser } = useSWR("user-me", () => api.user.me());
 
   const fetchAgent = useCallback(async () => {
     if (!agentName) return;
@@ -113,6 +118,8 @@ export function AgentProvider({ children, agentName }: AgentProviderProps) {
     }
   };
 
+  const isOwner = !!(agent && currentUser && agent.userId === currentUser.id);
+
   return (
     <AgentContext.Provider
       value={{
@@ -126,6 +133,8 @@ export function AgentProvider({ children, agentName }: AgentProviderProps) {
         togglingRuntime,
         toggleRuntime,
         mutateRuntime,
+        isOwner,
+        currentUser: currentUser || null,
       }}
     >
       {children}

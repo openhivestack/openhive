@@ -1,24 +1,16 @@
 {
   "name": "openhive",
-  "version": "0.1.0",
+  "version": "0.3.0",
+  "license": "Apache-2.0",
   "private": true,
   "scripts": {
-    "dev": "infisical run --path /common -- next dev",
+    "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
     "ui": "npx shadcn@latest",
-    "commit": "git add . && cz && git push",
-    "generate": "infisical run --path /common -- prisma generate",
-    "migrate": "infisical run --path /common -- prisma migrate dev",
-    "reset": "infisical run --path /common -- prisma migrate reset",
-    "studio": "infisical run --path /common -- prisma studio",
-    "update": "infisical run --path /common -- ts-node prisma/update.ts",
-    "seed": "infisical run --path /common -- ts-node prisma/seed.ts",
-    "tf:init": "terraform -chdir=terraform init",
-    "tf:plan": "infisical run --path /common -- terraform -chdir=terraform plan",
-    "tf:apply": "infisical run --path /common -- terraform -chdir=terraform apply",
-    "tf:destroy": "infisical run --path /common -- terraform -chdir=terraform destroy"
+    "commit": "git add . && cz && git pull --rebase && git push",
+    "seed": "ts-node prisma/seed.ts"
   },
   "dependencies": {
     "@ai-sdk/google": "^2.0.44",
@@ -71,6 +63,7 @@
     "lottie-react": "^2.4.1",
     "lucide-react": "^0.553.0",
     "luxon": "^3.7.2",
+    "mermaid": "^11.12.2",
     "millify": "^6.1.0",
     "motion": "^12.23.24",
     "nanoid": "^5.1.6",
@@ -91,6 +84,7 @@
     "tokenlens": "^1.3.1",
     "use-stick-to-bottom": "^1.1.1",
     "vaul": "^1.1.2",
+    "yaml": "^2.8.2",
     "zod": "^4.1.12"
   },
   "devDependencies": {

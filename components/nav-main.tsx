@@ -1,7 +1,5 @@
 "use client";
 
-import { type LucideIcon } from "lucide-react";
-
 import {
   SidebarGroup,
   SidebarGroupLabel,
@@ -11,21 +9,27 @@ import {
 } from "@/components/ui/sidebar";
 import Link from "next/link";
 import { useSession } from "@/lib/auth-client";
+import { DynamicIcon } from "lucide-react/dynamic";
+import { cn } from "@/lib/utils";
+import { usePathname } from "next/navigation";
 
 interface NavMainProps {
   items: {
     name: string;
     url: string;
-    icon: LucideIcon;
+    icon: string;
+    className?: string;
+    isPublic?: boolean;
   }[];
 }
 
 export function NavMain({
   items,
 }: NavMainProps) {
-  const { data: session, isPending} = useSession();
+  const pathname = usePathname();
+  const { data: session, isPending } = useSession();
 
-  if (!session && !isPending) {
+  if (isPending) {
     return null;
   }
 
@@ -33,16 +37,36 @@ export function NavMain({
     <SidebarGroup className="group-data-[collapsible=icon]:hidden">
       <SidebarGroupLabel>Platform</SidebarGroupLabel>
       <SidebarMenu>
-        {items.map((item) => (
-          <SidebarMenuItem key={item.name}>
-            <SidebarMenuButton asChild>
-              <Link href={item.url}>
-                <item.icon />
-                <span>{item.name}</span>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        ))}
+        {items.map((item) => {
+          if (!item.isPublic && !session) {
+            return null;
+          }
+
+          return (
+            <SidebarMenuItem key={item.name}>
+              <SidebarMenuButton
+                asChild
+                className={cn(
+                  "hover:bg-transparent",
+                  item.className ? item.className : "hover:text-primary",
+                  pathname.startsWith(item.url)
+                    ? item.className
+                      ? "opacity-100"
+                      : "text-primary"
+                    : "text-foreground/80"
+                )}
+              >
+                <Link href={item.url}>
+                  <DynamicIcon
+                    name={item.icon as any}
+                    className={cn(item.className)}
+                  />
+                  <span>{item.name}</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          );
+        })}
       </SidebarMenu>
     </SidebarGroup>
   );

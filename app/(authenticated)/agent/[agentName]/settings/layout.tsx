@@ -2,7 +2,7 @@
 
 import { ReactNode } from "react";
 import { useParams, usePathname } from "next/navigation";
-import { Bolt, Braces, LucideIcon } from "lucide-react";
+import { Bolt, Braces, LucideIcon, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
@@ -44,6 +44,12 @@ export default function SettingsLayout({ children }: Props) {
           icon: Braces,
           value: "environment-variables",
           pathname: `/agent/${agentName}/settings/environment-variables`,
+        },
+        {
+          label: "Verification",
+          icon: ShieldCheck,
+          value: "verification",
+          pathname: `/agent/${agentName}/settings/verification`,
         },
       ],
     },

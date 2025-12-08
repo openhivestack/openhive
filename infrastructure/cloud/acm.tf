@@ -1,6 +1,6 @@
 # --- ACM Certificate ---
 resource "aws_acm_certificate" "gateway" {
-  # e.g. gateway-dev.openhive.sh
+  # e.g. gateway-dev.openhive.cloud
   domain_name       = "${var.gateway_subdomain}-${var.environment}.${var.domain_name}"
   validation_method = "DNS"
 

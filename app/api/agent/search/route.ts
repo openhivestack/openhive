@@ -12,8 +12,12 @@ export async function POST(req: NextRequest) {
   const skip = (pageNum - 1) * limitNum;
 
   try {
+    // Default: Public agents + My Private agents (if logged in)
     const where: any = {
-      isPublic: true,
+      OR: [
+        { isPublic: true },
+        ...(auth?.user ? [{ userId: auth.user.id }] : []),
+      ],
     };
 
     if (query) {
@@ -93,12 +97,22 @@ export async function POST(req: NextRequest) {
             orderBy: { createdAt: "desc" },
             take: 1,
           },
+          organization: {
+            select: {
+              name: true,
+              logo: true,
+              slug: true
+            }
+          },
           user: {
             select: {
               name: true,
               image: true,
               username: true,
             },
+          },
+          _count: {
+            select: { executions: true },
           },
         },
       }),
@@ -119,7 +133,25 @@ export async function POST(req: NextRequest) {
     });
 
     return NextResponse.json({
-      agents: enrichedAgents,
+      "@context": {
+        "@vocab": "https://w3id.org/a2a/vocab#",
+        "dcat": "http://www.w3.org/ns/dcat#",
+        "dcterms": "http://purl.org/dc/terms/",
+        "foaf": "http://xmlns.com/foaf/0.1/"
+      },
+      "@type": "dcat:Catalog",
+      agents: enrichedAgents.map(a => {
+        const host = req.headers.get("host") || "localhost:3000";
+        const protocol = process.env.NODE_ENV === "production" ? "https" : "http";
+        const ownerName = a.user?.username || "unknown";
+        const gupri = `${protocol}://${host}/api/agent/${ownerName}/${a.name}`;
+        
+        return {
+          ...a,
+          "@id": gupri,
+          "@type": "dcat:Dataset"
+        };
+      }),
       pagination: {
         total,
         page: pageNum,

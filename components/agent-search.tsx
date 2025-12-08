@@ -93,7 +93,7 @@ export function AgentSearch({ onSearch, initialQuery = "", className }: AgentSea
                 </div>
               )}
               <div
-                className="bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer flex size-6 items-center justify-center rounded-full"
+                className="text-primary-foreground hover:text-primary cursor-pointer flex size-6 items-center justify-center rounded-full"
                 onClick={handleSearch}
               >
                 <Search className="size-3" />

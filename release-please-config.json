@@ -1,0 +1,12 @@
+{
+  "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
+  "packages": {
+    ".": {
+      "package-name": "openhive",
+      "release-type": "node"
+    }
+  },
+  "skip-changelog": true,
+  "bump-minor-pre-major": true,
+  "always-update": true
+}

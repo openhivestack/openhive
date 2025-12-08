@@ -12,8 +12,8 @@ variable "environment" {
 }
 
 variable "domain_name" {
-  description = "The root domain name for the gateway (e.g. openhive.sh)"
-  default     = "openhive.sh"
+  description = "The root domain name for the gateway (e.g. openhive.cloud)"
+  default     = "openhive.cloud"
 }
 
 variable "gateway_subdomain" {

@@ -116,7 +116,7 @@ export default function EnvironmentVariablesPage() {
           Build and Runtime, you may enter them right here, for the Environment
           of your choice.{" "}
           <Link
-            href="https://docs.openhive.sh/docs/concepts/environment-variables"
+            href="https://docs.openhive.cloud/docs/concepts/environment-variables"
             target="_blank"
             className="text-primary hover:text-primary/80"
           >
