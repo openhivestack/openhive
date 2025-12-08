@@ -1,4 +1,4 @@
-const { ECSClient, UpdateServiceCommand, DescribeServicesCommand } = require('@aws-sdk/client-ecs');
+const { ECSClient, UpdateServiceCommand, DescribeServicesCommand, ListServicesCommand } = require('@aws-sdk/client-ecs');
 
 class AgentManager {
   constructor() {
@@ -10,8 +10,14 @@ class AgentManager {
     // Track active agents: name -> { lastAccess: Date, status: 'ACTIVE' | 'SCALED_DOWN' | 'WAKING_UP' }
     this.activeAgents = new Map();
 
+    // Initial discovery of running agents
+    this.discoverRunningAgents();
+
     // Start the idle reaper loop
     setInterval(() => this.checkIdleAgents(), 60 * 1000); // Check every minute
+
+    // Re-run discovery every 5 minutes to catch agents deployed externally
+    setInterval(() => this.discoverRunningAgents(), 5 * 60 * 1000);
   }
 
   getServiceName(agentName) {
@@ -19,6 +25,64 @@ class AgentManager {
     // UPDATE: Based on AwsCloudProvider, the format is `service-${agentName}`
     // The project/env are scoped by the Cluster itself.
     return `service-${agentName}`;
+  }
+
+  async discoverRunningAgents() {
+    console.log('[AgentManager] Discovering running agents provided by ECS...');
+    try {
+      const command = new ListServicesCommand({
+        cluster: this.cluster,
+        maxResults: 100 // Handle pagination if > 100 services needed later
+      });
+      const response = await this.ecs.send(command);
+      const serviceArns = response.serviceArns || [];
+
+      if (serviceArns.length === 0) return;
+
+      // Describe to get names and status
+      // We process in chunks of 10 if there are many, but ListServices usually returns ARNs
+      // and DescribeServices accepts up to 10. Let's do a simple loop for now assuming < 100.
+      // Actually DescribeServices limit is 10. We need to chunk.
+
+      const chunks = [];
+      for (let i = 0; i < serviceArns.length; i += 10) {
+        chunks.push(serviceArns.slice(i, i + 10));
+      }
+
+      for (const chunk of chunks) {
+        const describeCmd = new DescribeServicesCommand({
+          cluster: this.cluster,
+          services: chunk
+        });
+        const descRes = await this.ecs.send(describeCmd);
+
+        for (const service of descRes.services || []) {
+          const name = service.serviceName;
+
+          // Check if it matches our pattern "service-{agentName}"
+          if (!name.startsWith('service-')) continue;
+
+          const agentName = name.replace('service-', '');
+
+          // Ignore gateway itself or other non-agents if any
+          if (agentName === 'gateway') continue;
+
+          if (service.status === 'ACTIVE' && service.runningCount > 0) {
+            // If we successfully found a running agent we didn't know about, track it.
+            // We give it a "fresh" start time so it doesn't get reaped immediately.
+            if (!this.activeAgents.has(agentName)) {
+              console.log(`[AgentManager] Discovered existing running agent: ${agentName}`);
+              this.activeAgents.set(agentName, {
+                lastAccess: new Date(),
+                status: 'ACTIVE'
+              });
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.error('[AgentManager] Failed to discover running agents:', error);
+    }
   }
 
   async checkIdleAgents() {
