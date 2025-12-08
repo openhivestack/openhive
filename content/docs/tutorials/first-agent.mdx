@@ -3,15 +3,385 @@ title: Your First Agent
 description: A step-by-step guide to building a simple Hello World agent.
 ---
 
+import { Tab, Tabs } from "fumadocs-ui/components/tabs";
+
 # Your First Agent
 
-In this tutorial, we will build a simple "Echo Agent" that repeats whatever you say to it, but in uppercase.
+In this tutorial, we will build a simple "Hello World" agent that can handle messages, maintain state, and fallback to an echo response if AI is not configured.
 
-## Steps
+You can choose to build this agent using either **Node.js** or **Python**.
 
-1. Initialize project
-2. Implement logic
-3. Test locally
-4. Deploy
+## Prerequisites
 
-_Content coming soon..._
+<Tabs items={["Node.js", "Python"]}>
+  <Tab value="Node.js">
+    - Node.js installed (v18 or later) - npm (Node Package Manager)
+  </Tab>
+  <Tab value="Python">
+    - Python installed (v3.8 or later) - pip (Python Package Installer)
+  </Tab>
+</Tabs>
+
+## Step 1: Initialize Project
+
+Create a new directory for your agent and initialize the project.
+
+<Tabs items={["Node.js", "Python"]}>
+  <Tab value="Node.js">
+    ```bash mkdir my-first-agent cd my-first-agent npm init -y npm install
+    typescript ts-node @types/node @types/express --save-dev npx tsc --init ```
+  </Tab>
+  <Tab value="Python">
+    ```bash mkdir my-first-agent cd my-first-agent python -m venv venv #
+    Activate virtual environment # Windows: .\venv\Scripts\activate # Linux/Mac:
+    source venv/bin/activate ```
+  </Tab>
+</Tabs>
+
+## Step 2: Install Dependencies
+
+Install the necessary SDKs and libraries.
+
+<Tabs items={["Node.js", "Python"]}>
+  <Tab value="Node.js">
+    Creating a `package.json` with the following dependencies:
+
+    ```json title="package.json"
+    {
+      "name": "agent",
+      "version": "0.1.0",
+      "scripts": {
+        "build": "tsc",
+        "start": "node dist/index.js",
+        "dev": "ts-node index.ts"
+      },
+      "dependencies": {
+        "@a2a-js/sdk": "^0.3.5",
+        "@ai-sdk/openai": "^2.0.65",
+        "ai": "^5.0.92",
+        "dotenv": "^16.4.7",
+        "express": "^5.1.0",
+        "uuid": "^13.0.0"
+      },
+      "devDependencies": {
+        "@types/express": "^4.17.21",
+        "@types/node": "^20.0.0",
+        "@types/uuid": "^10.0.0",
+        "ts-node": "^10.9.2",
+        "typescript": "^5.0.0"
+      }
+    }
+    ```
+
+    Run `npm install` to install them.
+
+  </Tab>
+  <Tab value="Python">
+    Create a `requirements.txt` file:
+
+    ```text title="requirements.txt"
+    a2a-sdk>=0.3.0
+    fastapi>=0.111.0
+    uvicorn>=0.29.0
+    python-dotenv>=1.0.1
+    openai>=1.30.0
+    a2a-sdk[http-server]>=0.3.0
+    ```
+
+    Run `pip install -r requirements.txt`.
+
+  </Tab>
+</Tabs>
+
+## Step 3: Agent Configuration
+
+Create an `.agent-card.json` file. This defines your agent's identity and capabilities.
+
+```json title=".agent-card.json"
+{
+  "name": "agent",
+  "description": "A basic Hello World agent",
+  "version": "0.1.0",
+  "protocolVersion": "0.3.0",
+  "runtime": "node",
+  "url": "http://localhost:8082",
+  "capabilities": {
+    "streaming": true,
+    "pushNotifications": true,
+    "stateTransitionHistory": true
+  },
+  "skills": [
+    {
+      "id": "chat",
+      "name": "Chat",
+      "description": "Simple chat capability",
+      "tags": ["chat"]
+    }
+  ]
+}
+```
+
+> **Note**: For Python, you might update `"runtime": "python"` but it is often just metadata.
+
+Create a `.env` file for environment variables:
+
+```bash title=".env"
+PORT=8082
+OPENAI_API_KEY=dummy-key
+```
+
+## Step 4: Implementation
+
+Now, let's write the agent code.
+
+<Tabs items={["Node.js", "Python"]}>
+  <Tab value="Node.js">
+    Create `index.ts`:
+
+    ```typescript title="index.ts"
+    import express from 'express';
+    import { v4 as uuidv4 } from 'uuid';
+    import type { AgentCard, Task, TaskStatusUpdateEvent, Message } from '@a2a-js/sdk';
+    import {
+      AgentExecutor,
+      RequestContext,
+      ExecutionEventBus,
+      DefaultRequestHandler,
+      InMemoryTaskStore,
+    } from '@a2a-js/sdk/server';
+    import { A2AExpressApp } from '@a2a-js/sdk/server/express';
+    import { createOpenAI } from '@ai-sdk/openai';
+    import { generateText } from 'ai';
+    import * as dotenv from 'dotenv';
+    import * as fs from 'fs';
+    import { URL } from 'url';
+
+    dotenv.config();
+
+    // Load Agent Card
+    const agentCard: AgentCard = JSON.parse(fs.readFileSync('.agent-card.json', 'utf8'));
+
+    // Initialize OpenAI (optional)
+    const openai = createOpenAI({
+      apiKey: process.env.OPENAI_API_KEY || 'dummy-key',
+    });
+
+    class Executor implements AgentExecutor {
+      private activeTasks = new Map<string, AbortController>();
+
+      async execute(requestContext: RequestContext, eventBus: ExecutionEventBus): Promise<void> {
+        const { taskId, contextId, userMessage, task } = requestContext;
+        const controller = new AbortController();
+        this.activeTasks.set(taskId, controller);
+
+        try {
+          // 1. Initialize Task if needed
+          if (!task) {
+            const initialTask: Task = {
+              kind: 'task',
+              id: taskId,
+              contextId: contextId,
+              status: { state: 'submitted', timestamp: new Date().toISOString() },
+              history: [userMessage]
+            };
+            eventBus.publish(initialTask);
+          }
+
+          const userText = userMessage?.parts?.find(p => p.kind === 'text')?.text || '';
+          console.log(`[${taskId}] 📩 Message received: "${userText}"`);
+
+          // 2. Update Status to 'working'
+          eventBus.publish({
+            kind: 'status-update',
+            taskId,
+            contextId,
+            status: { state: 'working', timestamp: new Date().toISOString() },
+            final: false
+          });
+
+          // 3. Generate Response
+          let responseText: string;
+          if (process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY !== 'dummy-key') {
+             try {
+               const { text } = await generateText({
+                 model: openai('gpt-4-turbo'),
+                 prompt: `You are a helpful assistant named ${agentCard.name}. Respond to: "${userText}"`,
+                 abortSignal: controller.signal,
+               });
+               responseText = text;
+             } catch (e) {
+               responseText = "Error generating AI response.";
+             }
+          } else {
+             // Fallback
+             await new Promise(resolve => setTimeout(resolve, 1000));
+             responseText = `Echo: ${userText}`;
+          }
+
+          if (controller.signal.aborted) return;
+
+          // 4. Send Response
+          const responseMessage: Message = {
+            kind: 'message',
+            messageId: uuidv4(),
+            role: 'agent',
+            parts: [{ kind: 'text', text: responseText }],
+            contextId: contextId,
+          };
+          eventBus.publish(responseMessage);
+
+          // 5. Complete Task
+          eventBus.publish({
+            kind: 'status-update',
+            taskId,
+            contextId,
+            status: { state: 'completed', timestamp: new Date().toISOString() },
+            final: true,
+          });
+          eventBus.finished();
+        } catch (error: any) {
+           console.error(error);
+           eventBus.publish({
+             kind: 'status-update',
+             taskId,
+             contextId,
+             status: { state: 'failed', timestamp: new Date().toISOString() },
+             final: true
+           });
+           eventBus.finished();
+        } finally {
+          this.activeTasks.delete(taskId);
+        }
+      }
+
+      async cancelTask(taskId: string, eventBus: ExecutionEventBus): Promise<void> {
+         const controller = this.activeTasks.get(taskId);
+         if (controller) controller.abort();
+         // Publish cancellation event...
+      }
+    }
+
+    // Setup Server
+    const port =  parseInt(process.env.PORT || '8082', 10);
+    const agentExecutor = new Executor();
+    const taskStore = new InMemoryTaskStore();
+    const requestHandler = new DefaultRequestHandler(agentCard, taskStore, agentExecutor);
+    const appBuilder = new A2AExpressApp(requestHandler);
+    const app = appBuilder.setupRoutes(express());
+    import uvicorn
+    import asyncio
+    from urllib.parse import urlparse
+    from fastapi import FastAPI
+    from dotenv import load_dotenv
+    from datetime import datetime, timezone
+
+    from a2a.server.apps.jsonrpc.fastapi_app import A2AFastAPIApplication
+    from a2a.server.agent_execution import AgentExecutor
+    from a2a.server.request_handlers.default_request_handler import DefaultRequestHandler
+    from a2a.server.tasks.inmemory_task_store import InMemoryTaskStore
+    from a2a.types import TaskStatusUpdateEvent, TaskStatus, TaskState, Message, TextPart, Part, AgentCard
+    from openai import AsyncOpenAI
+
+    load_dotenv()
+
+    # Load Agent Card
+    with open(".agent-card.json", "r") as f:
+        agent_card = AgentCard.model_validate(json.load(f))
+
+    openai_client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY") or "dummy-key")
+    has_openai = os.getenv("OPENAI_API_KEY") and os.getenv("OPENAI_API_KEY") != "dummy-key"
+
+    class Executor(AgentExecutor):
+        def __init__(self):
+            self.cancelled_tasks = set()
+
+        async def execute(self, request_context, event_bus):
+            task_id = request_context.task_id
+            context_id = request_context.context_id
+            user_text = next((p.root.text for p in request_context.message.parts if p.root.kind == "text"), "")
+
+            print(f'[{task_id}] 📩 Message received: "{user_text}"')
+
+            # Update status to working
+            await event_bus.enqueue_event(TaskStatusUpdateEvent(
+                kind="status-update",
+                taskId=task_id,
+                contextId=context_id,
+                status=TaskStatus(state=TaskState.working, timestamp=datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")),
+                final=False
+            ))
+
+            response_text = ""
+            if has_openai:
+                try:
+                    response = await openai_client.chat.completions.create(
+                        model="gpt-4-turbo",
+                        messages=[{"role": "user", "content": user_text}]
+                    )
+                    response_text = response.choices[0].message.content
+                except Exception as e:
+                    response_text = "Error calling OpenAI"
+            else:
+                await asyncio.sleep(1)
+                response_text = f"Echo: {user_text}"
+
+            if task_id in self.cancelled_tasks: return
+
+            # Send Message
+            await event_bus.enqueue_event(Message(
+                kind="message",
+                messageId=str(uuid.uuid4()),
+                role="agent",
+                parts=[Part(root=TextPart(text=response_text))],
+                contextId=context_id
+            ))
+
+            # Complete
+            await event_bus.enqueue_event(TaskStatusUpdateEvent(
+                kind="status-update",
+                taskId=task_id,
+                contextId=context_id,
+                status=TaskStatus(state=TaskState.completed, timestamp=datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")),
+                final=True
+            ))
+            await event_bus.close()
+
+        async def cancel(self, task_id, event_bus):
+            self.cancelled_tasks.add(task_id)
+
+    # Setup Server
+    app = FastAPI()
+    agent_executor = Executor()
+    task_store = InMemoryTaskStore()
+    request_handler = DefaultRequestHandler(task_store=task_store, agent_executor=agent_executor)
+    app_builder = A2AFastAPIApplication(agent_card=agent_card, http_handler=request_handler)
+    app_builder.add_routes_to_app(app, agent_card_url="/.well-known/agent-card.json")
+
+    if __name__ == "__main__":
+        uvicorn.run(app, host="0.0.0.0", port=8082)
+    ```
+
+  </Tab>
+</Tabs>
+
+## Step 5: Run the Agent
+
+Start your agent using the Hive CLI.
+
+```bash
+hive start
+```
+
+You should see output indicating the agent is listening on port 8082 (Python) or 4000 (Node.js).
+
+## Step 6: Test the Agent
+
+You can test your running agent using the `hive call` command. The URL can be found in your `.agent-card.json`.
+
+```bash
+hive call http://localhost:4000
+```
+
+## Next Steps
+
+Now that your agent is running, you can interact with it using the Hive CLI or connect it to the network.

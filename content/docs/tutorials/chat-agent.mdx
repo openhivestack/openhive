@@ -3,8 +3,180 @@ title: Building a Chat Agent
 description: Create a conversational agent using an LLM.
 ---
 
+import { Tab, Tabs } from "fumadocs-ui/components/tabs";
+
 # Building a Chat Agent
 
-Learn how to integrate OpenAI or Anthropic models to create a conversational persona.
+In this tutorial, we will upgrade the "Hello World" agent to become a capable conversational assistant by integrating an LLM (Large Language Model).
 
-_Content coming soon..._
+We will use **OpenAI** for this example, but the concepts apply to other providers as well.
+
+## Prerequisites
+
+- A running agent (from the [First Agent](./first-agent) tutorial).
+- An [OpenAI API Key](https://platform.openai.com/api-keys).
+
+## Step 1: Install AI Libraries
+
+We need to install the libraries that allow our agent to communicate with OpenAI.
+
+<Tabs items={["Node.js", "Python"]}>
+  <Tab value="Node.js">
+    We will use the Vercel AI SDK.
+
+    ```bash
+    npm install @ai-sdk/openai ai
+    ```
+
+  </Tab>
+  <Tab value="Python">
+    We will use the official OpenAI library.
+
+    ```bash
+    pip install openai
+    ```
+
+  </Tab>
+</Tabs>
+
+## Step 2: Configuration
+
+Add your OpenAI API Key to your `.env` file.
+
+```bash title=".env"
+PORT=8082
+OPENAI_API_KEY=sk-...
+```
+
+## Step 3: Implement Chat Logic
+
+Modify your agent code to generate responses using the LLM instead of just echoing text.
+
+<Tabs items={["Node.js", "Python"]}>
+  <Tab value="Node.js">
+    Update `index.ts`. We need to import the AI functions and use them in the execution loop.
+
+    ```typescript title="index.ts"
+    // ... imports
+    import { createOpenAI } from '@ai-sdk/openai';
+    import { generateText } from 'ai';
+
+    // ... setup
+
+    // Initialize OpenAI
+    const openai = createOpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
+
+    class Executor implements AgentExecutor {
+       // ...
+       async execute(requestContext: RequestContext, eventBus: ExecutionEventBus): Promise<void> {
+          // ... initialization and status update
+
+          // Generate Response using AI
+          let responseText: string;
+          try {
+             // Indicate we are thinking
+             eventBus.publish({
+                kind: 'artifact-update',
+                taskId,
+                contextId,
+                artifact: {
+                  artifactId: `thought-${Date.now()}`,
+                  name: 'Thought Process',
+                  parts: [{ kind: 'text', text: 'Thinking...' }]
+                }
+             });
+
+             const { text } = await generateText({
+               model: openai('gpt-4-turbo'),
+               prompt: `You are a helpful assistant named ${agentCard.name}. Respond to: "${userText}"`,
+               abortSignal: controller.signal,
+             });
+             responseText = text;
+          } catch (error) {
+             console.error(error);
+             responseText = "I'm having trouble thinking right now.";
+          }
+
+          // ... send response and complete
+       }
+    }
+    ```
+
+  </Tab>
+  <Tab value="Python">
+    Update `main.py`. We will use the async OpenAI client.
+
+    ```python title="main.py"
+    # ... imports
+    from openai import AsyncOpenAI
+
+    # Initialize Client
+    openai_client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
+    class Executor(AgentExecutor):
+        # ...
+        async def execute(self, request_context, event_bus):
+            # ... initialization
+
+            # Generate Response
+            response_text = ""
+            try:
+                # Send a thinking artifact
+                await event_bus.enqueue_event(TaskArtifactUpdateEvent(
+                    kind="artifact-update",
+                    taskId=task_id,
+                    contextId=context_id,
+                    artifact=Artifact(
+                        artifactId=f"thought-{int(datetime.now(timezone.utc).timestamp())}",
+                        name="Thought Process",
+                        parts=[Part(root=TextPart(text="Thinking..."))],
+                    ),
+                ))
+
+                response = await openai_client.chat.completions.create(
+                    model="gpt-4-turbo",
+                    messages=[
+                        {"role": "system", "content": f"You are a helpful assistant named {agent_card.name}."},
+                        {"role": "user", "content": user_text},
+                    ]
+                )
+                response_text = response.choices[0].message.content
+            except Exception as e:
+                print(e)
+                response_text = "I'm having trouble thinking right now."
+
+            # ... send response and complete
+    ```
+
+  </Tab>
+</Tabs>
+
+## Step 4: Customizing Persona
+
+You can change how your agent behaves by modifying the **System Prompt**.
+
+- **Node.js**: Change the `prompt` string in `generateText`.
+- **Python**: Change the `content` of the `system` message in `messages`.
+
+For example, to make a pirate agent:
+`You are a helpful pirate assistant. Respond to every message with Arrr!`
+
+## Step 5: Run and Chat
+
+Start your agent:
+
+```bash
+hive start
+```
+
+Now talk to it:
+
+```bash
+hive call http://localhost:4000 --message "Tell me a joke"
+```
+
+_(Use port 8082 for Python)_
+
+You should receive a creative response generated by the AI!
