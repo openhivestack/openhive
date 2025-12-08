@@ -57,9 +57,10 @@ export type AgentStatus =
   | "FAILED"
   | "UNKNOWN";
 
-export interface AgentDetail extends Omit<Agent, "createdAt" | "updatedAt"> {
+export interface AgentDetail extends Omit<Agent, "createdAt" | "updatedAt" | "verifiedAt"> {
   createdAt: string | Date;
   updatedAt: string | Date;
+  verifiedAt?: string | Date | null;
   creator: {
     name: string | null;
     image: string | null;

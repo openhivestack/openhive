@@ -34,10 +34,22 @@ hive call <agent> --message "Your prompt here"
 
 ### Interactive Mode
 
-If you omit the `--message` flag, the CLI enters an interactive chat mode.
+Use the `-i` (or `--interactive`) flag to enter a real-time chat session with the agent.
 
 ```bash
-hive call weather-bot
+hive call weather-bot -i
+```
+
+### Working with Attachments
+
+You can attach files or entire directories to your message using the `-f` and `-d` flags. The CLI handles encoding and sending them to the agent.
+
+```bash
+# Attach a single file
+hive call log-analyzer -m "Analyze this" -f ./server.log
+
+# Attach multiple files and a directory
+hive call code-reviewer -m "Review my code" -f ./app.ts -d ./src/components/
 ```
 
 ## Testing Locally

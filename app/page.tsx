@@ -75,7 +75,7 @@ export default async function HomePage() {
 
         <div className="container relative z-10 mx-auto w-full max-w-6xl mt-10 md:mt-20 flex flex-col md:flex-row justify-between gap-8 md:gap-2 p-4 md:p-0">
           <div className="flex flex-col gap-1 mt-4 md:mt-10">
-            <h1 className="text-xl md:text-4xl font-bold">Universal Registry for the <AnimatedGradientText>Agentic Web</AnimatedGradientText></h1>
+            <h1 className="text-xl md:text-4xl font-bold">Universal Platform for <AnimatedGradientText>Autonomous AI</AnimatedGradientText></h1>
             <p className="text-md text-muted-foreground max-w-xl">
               Build, register, and discover autonomous agents with a developer-first platform. Open standards, federation-ready, and fully typed.
             </p>
@@ -105,30 +105,30 @@ export default async function HomePage() {
         <Card className="relative w-full max-w-[350px] overflow-hidden mx-auto">
           <ShineBorder shineColor={["#A07CFE", "#FE8FB5", "#FFBE7B"]} />
           <CardHeader className="items-center">
-            <CardTitle>Code Generation</CardTitle>
+            <CardTitle>Standardized Integration</CardTitle>
             <CardDescription>
-              Generate verified agent patterns directly into your codebase. No
-              black boxes—you own the logic.
+              Install agent capabilities with a single command. Type-safe,
+              generated code that you fully own.
             </CardDescription>
           </CardHeader>
         </Card>
         <Card className="relative w-full max-w-[350px] overflow-hidden mx-auto">
           <ShineBorder shineColor={["#A07CFE", "#FE8FB5", "#FFBE7B"]} />
           <CardHeader className="items-center">
-            <CardTitle>Global Registry</CardTitle>
+            <CardTitle>Global Discovery</CardTitle>
             <CardDescription>
-              Discover and integrate thousands of skilled agents from the open
-              network instantly.
+              Find and connect with specialized agents across the open network.
+              Discovery, not just search.
             </CardDescription>
           </CardHeader>
         </Card>
         <Card className="relative w-full max-w-[350px] overflow-hidden mx-auto">
           <ShineBorder shineColor={["#A07CFE", "#FE8FB5", "#FFBE7B"]} />
           <CardHeader className="items-center">
-            <CardTitle>Enterprise Runtime</CardTitle>
+            <CardTitle>Verifiable Trust</CardTitle>
             <CardDescription>
-              Secure, serverless execution with built-in identity (DID),
-              authentication, and observability.
+              Interact with confidence using built-in decentralized identity
+              (DIDs) and granular permissioning.
             </CardDescription>
           </CardHeader>
         </Card>
