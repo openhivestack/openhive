@@ -142,3 +142,43 @@ resource "aws_iam_role_policy" "codebuild_policy" {
     ]
   })
 }
+
+# Gateway Task Role (for the application to call AWS APIs)
+resource "aws_iam_role" "gateway_task_role" {
+  name = "${var.project_name}-${var.environment}-gateway-task-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Action = "sts:AssumeRole"
+      Effect = "Allow"
+      Principal = {
+        Service = "ecs-tasks.amazonaws.com"
+      }
+    }]
+  })
+
+  tags = {
+    Environment = var.environment
+  }
+}
+
+resource "aws_iam_role_policy" "gateway_ecs_policy" {
+  name = "${var.project_name}-${var.environment}-gateway-ecs-policy"
+  role = aws_iam_role.gateway_task_role.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "ecs:UpdateService",
+          "ecs:DescribeServices",
+          "ecs:ListServices"
+        ]
+        Resource = "*"
+      }
+    ]
+  })
+}

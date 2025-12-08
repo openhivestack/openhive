@@ -71,19 +71,33 @@ jobs:
           IMAGE: ${{ steps.build-image.outputs.image }}
           # Secrets are automatically scoped to the selected environment (dev/pro)
           GATEWAY_SECRET: ${{ secrets.GATEWAY_SECRET }}
+          # Pass env vars to shell for jq
+          ECS_CLUSTER: ${{ env.ECS_CLUSTER }}
+          ENVIRONMENT: ${{ env.ENVIRONMENT }}
+          AWS_REGION: ${{ env.AWS_REGION }}
+          PROJECT_NAME: openhive
         run: |
           # Update the task definition to use the real gateway image.
            # CHANGED: We keep port 80 everywhere (terraform, load balancer, and app) to avoid mismatch errors.
            # CHANGED: We now preserve existing environment variables (like CLOUD_MAP_NAMESPACE) and only update/add the ones we need.
-           jq --arg IMAGE "$IMAGE" --arg SECRET "$GATEWAY_SECRET" '
+           jq --arg IMAGE "$IMAGE" \
+              --arg SECRET "$GATEWAY_SECRET" \
+              --arg ECS_CLUSTER "$ECS_CLUSTER" \
+              --arg PROJECT_NAME "$PROJECT_NAME" \
+              --arg ENVIRONMENT "$ENVIRONMENT" \
+              --arg AWS_REGION "$AWS_REGION" '
              .containerDefinitions[0].image = $IMAGE |
              .containerDefinitions[0].portMappings[0].containerPort = 80 |
              .containerDefinitions[0].portMappings[0].hostPort = 80 |
              .containerDefinitions[0].environment |= (
-               map(select(.name != "GATEWAY_SECRET" and .name != "PORT")) + 
+               map(select(.name != "GATEWAY_SECRET" and .name != "PORT" and .name != "ECS_CLUSTER" and .name != "PROJECT_NAME" and .name != "ENVIRONMENT" and .name != "AWS_REGION")) + 
                [
                  { "name": "GATEWAY_SECRET", "value": $SECRET },
-                 { "name": "PORT", "value": "80" }
+                 { "name": "PORT", "value": "80" },
+                 { "name": "ECS_CLUSTER", "value": $ECS_CLUSTER },
+                 { "name": "PROJECT_NAME", "value": $PROJECT_NAME },
+                 { "name": "ENVIRONMENT", "value": $ENVIRONMENT },
+                 { "name": "AWS_REGION", "value": $AWS_REGION }
                ]
              ) |
              del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy)

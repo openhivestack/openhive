@@ -19,6 +19,7 @@ resource "aws_ecs_task_definition" "gateway" {
   cpu                      = "256"
   memory                   = "512"
   execution_role_arn       = aws_iam_role.ecs_task_execution_role.arn
+  task_role_arn            = aws_iam_role.gateway_task_role.arn
 
   tags = {
     Environment = var.environment
@@ -44,6 +45,22 @@ resource "aws_ecs_task_definition" "gateway" {
         {
           name  = "CLOUD_MAP_NAMESPACE"
           value = aws_service_discovery_private_dns_namespace.main.name
+        },
+        {
+          name  = "ECS_CLUSTER"
+          value = aws_ecs_cluster.main.name
+        },
+        {
+          name  = "PROJECT_NAME"
+          value = var.project_name
+        },
+        {
+          name  = "ENVIRONMENT"
+          value = var.environment
+        },
+        {
+          name  = "AWS_REGION"
+          value = var.aws_region
         }
       ]
       logConfiguration = {
