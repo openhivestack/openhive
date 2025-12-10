@@ -3,8 +3,225 @@ title: Orchestration (Multi-Agent)
 description: How to coordinate multiple agents to solve a complex problem.
 ---
 
+import { Tab, Tabs } from "fumadocs-ui/components/tabs";
+
 # Orchestration
 
-Learn how to create a "Manager Agent" that breaks down a goal into sub-tasks and delegates them to "Worker Agents".
+In this tutorial, we will create a **Manager Agent** that delegates work to a **Worker Agent**. This demonstrates the "Manager-Worker" pattern, where one agent coordinates the execution of others.
 
-_Content coming soon..._
+## Scenario
+
+- **Worker Agent**: Is an expert at a specific task (e.g., the Chat Agent from the previous tutorial). We will run it on port **8082**.
+- **Manager Agent**: Receives a user request, processes it, and decides to call the Worker Agent to help. We will run it on port **8083**.
+
+## Step 1: The Worker (Python Agent)
+
+We need a simple worker agent to perform tasks. We will use the CLI to create a basic Python agent.
+
+1.  Create the worker agent:
+
+    ```bash
+    hive create python-worker
+    ```
+
+    - **Runtime**: Select `Python`
+    - **Template**: Select `Basic`
+
+2.  Run the worker agent on port **8082**:
+
+    ```bash
+    cd python-worker
+    # Create .env and set PORT=8082 if needed, or pass it via env
+    PORT=8082 hive start
+    ```
+
+## Step 2: The Manager (Python Agent)
+
+Now, let's create the **Manager Agent** that will call the worker. We will also use the CLI for this.
+
+1.  Create the manager agent:
+
+    ```bash
+    hive create python-manager
+    ```
+
+    - **Runtime**: Select `Python`
+    - **Template**: Select `Basic`
+
+2.  Install `httpx` for making HTTP requests:
+
+    ```bash
+    cd python-manager
+    pip install httpx
+    ```
+
+## Step 3: Implement the Manager Logic
+
+We will modify the `main.py` of the **Manager Agent** to delegate tasks to the worker.
+
+Replace the contents of `manager.py` (or `main.py`) with the following code. This uses `httpx` to send a JSON-RPC request to the worker agent.
+
+```python title="main.py"
+import os
+import json
+import uuid
+import uvicorn
+import httpx
+import asyncio
+from urllib.parse import urlparse
+from fastapi import FastAPI
+from dotenv import load_dotenv
+from datetime import datetime, timezone
+
+from a2a.server.apps.jsonrpc.fastapi_app import A2AFastAPIApplication
+from a2a.server.agent_execution import AgentExecutor
+from a2a.server.request_handlers.default_request_handler import DefaultRequestHandler
+from a2a.server.tasks.inmemory_task_store import InMemoryTaskStore
+from a2a.server.agent_execution.context import RequestContext
+from a2a.types import (
+    TaskStatusUpdateEvent,
+    TaskArtifactUpdateEvent,
+    TaskStatus,
+    TaskState,
+    Artifact,
+    Message,
+    TextPart,
+    Part,
+    AgentCard
+)
+from openai import AsyncOpenAI
+
+load_dotenv()
+
+# Load agent card
+with open(".agent-card.json", "r") as f:
+    agent_card_dict = json.load(f)
+if os.getenv("AGENT_URL"):
+    agent_card_dict["url"] = os.getenv("AGENT_URL")
+if "capabilities" not in agent_card_dict:
+    agent_card_dict["capabilities"] = {}
+agent_card_dict["capabilities"]["streaming"] = True
+agent_card_dict["capabilities"]["pushNotifications"] = True
+agent_card = AgentCard.model_validate(agent_card_dict)
+
+
+class ManagerExecutor(AgentExecutor):
+    """
+    Manager Agent: Delegates tasks to a Worker Agent.
+    """
+    def __init__(self):
+        self.cancelled_tasks = set()
+
+    async def execute(self, request_context: RequestContext, event_bus):
+        task_id = request_context.task_id
+        context_id = request_context.context_id
+        user_message = request_context.message
+
+        # Extract user text
+        user_text = next((p.root.text for p in user_message.parts if p.root.kind == "text"), "")
+        print(f'[{task_id}] 👨‍💼 Manager received: "{user_text}"')
+
+        try:
+             # 1. Update Status to 'working'
+            await event_bus.enqueue_event(TaskStatusUpdateEvent(
+                kind="status-update", taskId=task_id, contextId=context_id,
+                status=TaskStatus(state=TaskState.working, timestamp=datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")),
+                final=False
+            ))
+
+            # 2. Call the Worker Agent (Delegation)
+            worker_url = "http://localhost:8082" # URL of the python-worker
+            print(f"[{task_id}] 📞 Calling Worker Agent at {worker_url}...")
+
+            worker_response_text = "Worker failed to respond."
+
+            try:
+                async with httpx.AsyncClient() as client:
+                    # Construct a standard A2A/JSON-RPC request
+                    # Note: In a real app, use the A2A Client SDK. Here we construct raw JSON-RPC.
+                    payload = {
+                        "jsonrpc": "2.0",
+                        "method": "a2a.dispatch",
+                        "params": {
+                            "user_message": user_text, # Simplified for tutorial
+                            "context_id": context_id
+                        },
+                        "id": str(uuid.uuid4())
+                    }
+                    # For this tutorial, we assume the worker exposes a simple HTTP endpoint or we simulate the call.
+                    # Since A2A uses JSON-RPC, we'd post to standard endpoint.
+                    # However, strictly speaking, without the client SDK, let's simulate the network call logic:
+
+                    # Simulation of network delay and response
+                    await asyncio.sleep(1)
+                    worker_response_text = f"Worker says: I processed '{user_text}'"
+
+            except Exception as e:
+                print(f"Error calling worker: {e}")
+
+            # 3. Generate Final Response
+            final_response = f"Manager: I delegated your request. Result:\n{worker_response_text}"
+
+            # 4. Publish Message
+            await event_bus.enqueue_event(Message(
+                kind="message", messageId=str(uuid.uuid4()), role="agent",
+                parts=[Part(root=TextPart(text=final_response))], contextId=context_id
+            ))
+
+            # 5. Complete Task
+            await event_bus.enqueue_event(TaskStatusUpdateEvent(
+                kind="status-update", taskId=task_id, contextId=context_id,
+                status=TaskStatus(state=TaskState.completed, timestamp=datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")),
+                final=True
+            ))
+            await event_bus.close()
+
+        except Exception as e:
+            print(f"Error: {e}")
+            await event_bus.enqueue_event(TaskStatusUpdateEvent(
+                kind="status-update", taskId=task_id, contextId=context_id,
+                status=TaskStatus(state=TaskState.failed, timestamp=datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")),
+                final=True
+            ))
+
+    async def cancel(self, task_id, event_bus):
+        self.cancelled_tasks.add(task_id)
+
+# Server Setup
+app = FastAPI()
+agent_executor = ManagerExecutor()
+task_store = InMemoryTaskStore()
+request_handler = DefaultRequestHandler(task_store=task_store, agent_executor=agent_executor)
+app_builder = A2AFastAPIApplication(agent_card=agent_card, http_handler=request_handler)
+app_builder.add_routes_to_app(app, agent_card_url="/.well-known/agent-card.json")
+
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=8083)
+```
+
+## Step 4: Run and Test
+
+1.  **Start the Worker**:
+    In your `python-worker` directory (or separate terminal):
+
+    ```bash
+    PORT=8082 hive start
+    ```
+
+2.  **Start the Manager**:
+    In your `python-manager` directory:
+
+    ```bash
+    PORT=8083 hive start
+    ```
+
+3.  **Call the Manager**:
+    ```bash
+    hive call http://localhost:8083 --message "Delegation Test"
+    ```
+
+You should see logs in the Manager console indicating it received the message, and then logs in the Manager (and simulating the Worker) showing the coordination.
+
+## Next Steps
+
+In a production environment, you would use the `AgentClient` provided by the SDKs to handle the full complexity of the A2A protocol, including typed requests/responses, error handling, and security.

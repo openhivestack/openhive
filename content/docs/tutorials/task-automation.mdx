@@ -3,8 +3,207 @@ title: Task Automation
 description: Create an agent that performs specific tasks (e.g., fetch weather).
 ---
 
+import { Tab, Tabs } from "fumadocs-ui/components/tabs";
+
 # Task Automation Agent
 
-Build an agent that can use tools (function calling) to interact with external APIs like a Weather Service.
+In this tutorial, we will build an agent that can interact with external systems using **Tools** (also known as Function Calling). We will build a "Weather Agent" that can tell you the weather in any city.
 
-_Content coming soon..._
+## Step 1: Create the Agent
+
+We will use the CLI to scaffold a new agent.
+
+<Tabs items={["Node.js", "Python"]}>
+  <Tab value="Node.js">
+    ```bash hive create weather-agent ``` - **Runtime**: `Node.js (TypeScript)`
+    - **Template**: `Basic`
+  </Tab>
+  <Tab value="Python">
+    ```bash hive create weather-agent ``` - **Runtime**: `Python` -
+    **Template**: `Basic`
+  </Tab>
+</Tabs>
+
+## Step 2: Define Tool Logic
+
+We need a function that the AI can call. For this tutorial, we will simulate a weather API to avoid needing real API keys.
+
+<Tabs items={["Node.js", "Python"]}>
+  <Tab value="Node.js">
+    We will modify `index.ts` to use the `tools` parameter in the Vercel AI SDK.
+    
+    Update your `index.ts`:
+
+    ```typescript title="index.ts"
+    // ... imports (same as basic agent)
+    import { createOpenAI } from '@ai-sdk/openai';
+    import { generateText, tool } from 'ai'; // Import 'tool'
+    import { z } from 'zod';
+
+    // ... setup (same as basic agent)
+
+    const openai = createOpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+    class Executor implements AgentExecutor {
+       // ...
+       async execute(requestContext: RequestContext, eventBus: ExecutionEventBus): Promise<void> {
+          // ... initialization code (status updates)
+
+          const userText = userMessage?.parts?.find(p => p.kind === 'text')?.text || '';
+
+          let responseText: string;
+          try {
+             const { text } = await generateText({
+               model: openai('gpt-4-turbo'),
+               prompt: `You are a helpful assistant named ${agentCard.name}. Respond to: "${userText}"`,
+               tools: {
+                 get_weather: tool({
+                   description: 'Get the current weather in a given location',
+                   parameters: z.object({
+                     location: z.string().describe('The city and state, e.g. San Francisco, CA'),
+                   }),
+                   execute: async ({ location }) => {
+                     // Simulation logic
+                     const temp = Math.floor(Math.random() * 30) + 10; // Random temp 10-40C
+                     return { location, temperature: temp, condition: 'Sunny' };
+                   },
+                 }),
+               },
+               abortSignal: controller.signal,
+             });
+             responseText = text;
+          } catch (e) {
+             console.error(e);
+             responseText = "I couldn't check the weather.";
+          }
+
+          // ... send response and complete
+       }
+    }
+    // ... server setup
+    ```
+
+  </Tab>
+  <Tab value="Python">
+    We will modify `main.py` (or `agent.py`) to define the tool schema and handle the function call response loop.
+
+    ```python title="main.py"
+    # ... imports
+    import json
+    from openai import AsyncOpenAI
+
+    # ... setup code
+
+    # Define the Tool implementation
+    async def get_current_weather(location):
+        """Get the current weather in a given location"""
+        # Simulation
+        return json.dumps({"location": location, "temperature": "22", "unit": "celsius", "condition": "Sunny"})
+
+    # Define the Tool Schema for OpenAI
+    tools = [
+        {
+            "type": "function",
+            "function": {
+                "name": "get_current_weather",
+                "description": "Get the current weather in a given location",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "location": {
+                            "type": "string",
+                            "description": "The city and state, e.g. San Francisco, CA",
+                        },
+                    },
+                    "required": ["location"],
+                },
+            },
+        }
+    ]
+
+    class Executor(AgentExecutor):
+        # ...
+        async def execute(self, request_context, event_bus):
+            # ... initialization
+
+            user_text = next((p.root.text for p in request_context.message.parts if p.root.kind == "text"), "")
+
+            # Tool Call Loop
+            messages = [
+                {"role": "system", "content": f"You are a weather assistant."},
+                {"role": "user", "content": user_text}
+            ]
+
+            try:
+                # First call to LLM
+                response = await openai_client.chat.completions.create(
+                    model="gpt-4-turbo",
+                    messages=messages,
+                    tools=tools,
+                    tool_choice="auto",
+                )
+                response_message = response.choices[0].message
+                tool_calls = response_message.tool_calls
+
+                # Check if the model wants to call a function
+                if tool_calls:
+                    messages.append(response_message)  # extend conversation with assistant's reply
+
+                    for tool_call in tool_calls:
+                        function_name = tool_call.function.name
+                        function_args = json.loads(tool_call.function.arguments)
+
+                        if function_name == "get_current_weather":
+                            function_response = await get_current_weather(
+                                location=function_args.get("location")
+                            )
+
+                            messages.append(
+                                {
+                                    "role": "tool",
+                                    "tool_call_id": tool_call.id,
+                                    "name": function_name,
+                                    "content": function_response,
+                                }
+                            )
+
+                    # Second call to LLM to get final answer
+                    second_response = await openai_client.chat.completions.create(
+                        model="gpt-4-turbo",
+                        messages=messages,
+                    )
+                    response_text = second_response.choices[0].message.content
+                else:
+                    response_text = response_message.content
+
+            except Exception as e:
+                print(e)
+                response_text = "Error processing request."
+
+            # ... send response
+    ```
+
+  </Tab>
+</Tabs>
+
+## Step 3: Run and Test
+
+1.  Start your agent:
+
+    ```bash
+    hive start
+    ```
+
+2.  Ask it about the weather:
+
+    ```bash
+    hive call http://localhost:4000 --message "What is the weather in Tokyo?"
+    ```
+
+    _(Remember port 8082 for Python)_
+
+    You should see the agent "thinking", invoking the `get_weather` tool, and then responding with the (simulated) weather data.
+
+## Next Steps
+
+You can now expand this to use real APIs (like OpenWeatherMap) by replacing the simulation logic with actual `fetch` or `httpx` calls (remember to add your API keys to `.env`).
