@@ -16,12 +16,10 @@ import {
   Clock,
   Copy,
   Check,
-  ArrowUpIcon,
-  PlusIcon,
   ChevronDown,
   ChevronUp,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { DateTime } from "luxon";
 import {
   Tooltip,
@@ -29,12 +27,35 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Separator } from "@/components/ui/separator";
-import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupText, InputGroupTextarea } from "./ui/input-group";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import { DefaultChatTransport } from "ai";
+import { useChat } from "@ai-sdk/react";
+import { toast } from "sonner";
+import {
+  Conversation,
+  ConversationContent,
+  ConversationEmptyState,
+} from "./ai-elements/conversation";
+import { Message, MessageContent } from "./ai-elements/message";
+import {
+  PromptInput,
+  PromptInputActionAddAttachments,
+  PromptInputActionMenu,
+  PromptInputActionMenuContent,
+  PromptInputActionMenuTrigger,
+  PromptInputAttachment,
+  PromptInputAttachments,
+  PromptInputBody,
+  PromptInputSpeechButton,
+  PromptInputSubmit,
+  PromptInputTextarea,
+  PromptInputFooter,
+  PromptInputTools,
+  PromptInputHeader,
+  PromptInputProvider,
+} from "./ai-elements/prompt-input";
 
 interface AgentPublicPageProps {
   agent: AgentDetail;
@@ -236,6 +257,33 @@ function CollapsibleCodeBlock({ code, language = "typescript", className }: Coll
 
 export function AgentPublicPage({ agent }: AgentPublicPageProps) {
   const [copied, setCopied] = useState(false);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const ownerSlug = agent.organization?.slug || agent.creator?.username || "-";
+  const { messages, sendMessage, status } = useChat({
+    transport: new DefaultChatTransport({
+      api: `/api/agent/${ownerSlug}/${agent.name}/call`,
+    }),
+    onError: (e) => {
+      toast.error("Failed to connect to agent: " + e.message);
+    }
+  });
+
+  const isLoading = status === "submitted" || status === "streaming";
+
+  // Cold Start Feedback: If status is 'submitted' (waiting) for > 5s, notify user.
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (status === "submitted") {
+      timer = setTimeout(() => {
+        toast.info("Agent is waking up...", {
+          description: "This may take up to a minute for cold starts.",
+          duration: 10000, // Show for 10s
+        });
+      }, 5000); // 5 seconds threshold
+    }
+    return () => clearTimeout(timer);
+  }, [status]);
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
@@ -244,14 +292,10 @@ export function AgentPublicPage({ agent }: AgentPublicPageProps) {
   };
 
   const installCommand = `npx @open-hive/cli add ${agent.name}`;
-  // Use deployedUrl or construct a placeholder if not verified/deployed
-  // Assuming agent.url is not available on AgentDetail yet based on review, 
-  // but if it is, we use it. If not, we can use a placeholder.
-  // Actually, checking previous context or api-client would reveal it, 
-  // but for safety let's assume `agent.url` might be missing or under a different name.
-  // If `agent` has `metadata`, maybe it's there. 
-  // For now we'll use a placeholder if undefined.
-  const agentUrl = (agent as any).url || `https://registry.openhive.cloud/agents/${agent.name}`;
+  // Use the URL from the agent card if available (external deployment),
+  // otherwise construct the OpenHive dynamic URL.
+  // Note: properties from agentCard (like 'url') are spread onto the agent object in the server component.
+  const agentUrl = (agent as any).url || `${process.env.NEXT_PUBLIC_APP_URL}/api/agent/${agent.name}`;
 
   const nodeScaffold = generateNodeScaffold(agent.name, agentUrl);
   const pythonScaffold = generatePythonScaffold(agent.name, agentUrl);
@@ -292,48 +336,92 @@ export function AgentPublicPage({ agent }: AgentPublicPageProps) {
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
         <div className="md:col-span-3 space-y-14">
-          <section className="space-y-2">
+          <section className="space-y-4">
             <h2 className="scroll-m-20 text-lg text-foreground/60 font-semibold tracking-tight first:mt-0 mb-2">
               Playground
             </h2>
-            <div className="flex flex-col items-center justify-center text-center w-full py-2 space-y-4">
-              <InputGroup>
-                <InputGroupTextarea placeholder="Ask, Search or Chat..." />
-                <InputGroupAddon align="block-end">
-                  <InputGroupButton
-                    variant="outline"
-                    className="rounded-full"
-                    size="icon-xs"
-                  >
-                    <PlusIcon />
-                  </InputGroupButton>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <InputGroupButton variant="ghost">Auto</InputGroupButton>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent
-                      side="top"
-                      align="start"
-                      className="[--radius:0.95rem]"
+            <div className="flex flex-col w-full h-[600px] border border-border/50 rounded-xl bg-background/50 shadow-sm overflow-hidden relative">
+              <Conversation className="pb-4">
+                <ConversationContent className="gap-4">
+                  {messages.length === 0 && (
+                    <ConversationEmptyState
+                      icon={<Activity className="size-8 text-muted-foreground/50" />}
+                      title="Ready to chat"
+                      description={`Start a conversation with ${agent.name}`}
+                    />
+                  )}
+                  {messages.map((m) => (
+                    <Message
+                      key={m.id}
+                      from={m.role === "user" ? "user" : "assistant"}
                     >
-                      <DropdownMenuItem>Auto</DropdownMenuItem>
-                      <DropdownMenuItem>Agent</DropdownMenuItem>
-                      <DropdownMenuItem>Manual</DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                  <InputGroupText className="ml-auto">52% used</InputGroupText>
-                  <Separator orientation="vertical" className="!h-4" />
-                  <InputGroupButton
-                    variant="default"
-                    className="rounded-full"
-                    size="icon-xs"
-                    disabled
+                      <MessageContent className={cn(
+                        "shadow-none border",
+                        m.role === "user" ? "bg-primary text-primary-foreground border-primary" : "bg-muted/50 border-border/50"
+                      )}>
+                        <p className="whitespace-pre-wrap">
+                          {m.parts
+                            .filter((part) => part.type === "text")
+                            .map((part) => (part as any).text)
+                            .join("")}
+                        </p>
+                      </MessageContent>
+                    </Message>
+                  ))}
+                </ConversationContent>
+              </Conversation>
+
+              <div className="p-4">
+                <PromptInputProvider>
+                  <PromptInput
+                    globalDrop
+                    multiple
+                    onSubmit={async ({ text, files }) => {
+                      if (!text.trim() && (!files || files.length === 0)) return;
+
+                      const parts: any[] = [];
+                      if (text.trim()) {
+                        parts.push({ type: "text", text });
+                      }
+                      if (files) {
+                        parts.push(...files);
+                      }
+
+                      sendMessage({ role: "user", parts });
+                    }}
                   >
-                    <ArrowUpIcon />
-                    <span className="sr-only">Send</span>
-                  </InputGroupButton>
-                </InputGroupAddon>
-              </InputGroup>
+                    <PromptInputHeader>
+                      <PromptInputAttachments>
+                        {(attachment) => <PromptInputAttachment data={attachment} />}
+                      </PromptInputAttachments>
+                    </PromptInputHeader>
+                    <PromptInputBody>
+                      <PromptInputTextarea
+                        ref={textareaRef}
+                        placeholder="Message agent..."
+                        disabled={isLoading}
+                      />
+                    </PromptInputBody>
+                    <PromptInputFooter>
+                      <PromptInputTools>
+                        <PromptInputActionMenu>
+                          <PromptInputActionMenuTrigger />
+                          <PromptInputActionMenuContent>
+                            <PromptInputActionAddAttachments />
+                          </PromptInputActionMenuContent>
+                        </PromptInputActionMenu>
+                        <PromptInputSpeechButton
+                          textareaRef={textareaRef}
+                        />
+                      </PromptInputTools>
+                      <PromptInputSubmit
+                        status={status}
+                        disabled={isLoading}
+                      />
+                    </PromptInputFooter>
+                  </PromptInput>
+                </PromptInputProvider>
+              </div>
             </div>
           </section>
 

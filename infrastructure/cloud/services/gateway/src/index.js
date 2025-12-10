@@ -74,6 +74,9 @@ app.use('/:agentName', async (req, res, next) => {
     pathRewrite: {
       [`^/${agentName}`]: '', // Remove agent name from path when forwarding
     },
+    // Increase timeouts to handle cold starts (5 minutes)
+    proxyTimeout: 300000,
+    timeout: 300000,
     // Increase buffer size for larger requests if needed
     // ws: true, // Enable WebSocket support if needed
     onProxyReq: (proxyReq, req, res) => {

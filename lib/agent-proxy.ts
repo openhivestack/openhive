@@ -6,12 +6,13 @@ import { nanoid } from "nanoid";
 
 export async function handleAgentRequest(
   req: NextRequest,
+  user: any, // Accepted validated user object
   agentName: string,
   pathSegments: string[] = []
 ) {
-  // 1. Validate Auth (API Key or Session)
-  const auth = await validateAuth();
-  if (!auth?.user) {
+
+  // 1. Auth is now handled by the caller (route handler) passing 'user' arg
+  if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -114,8 +115,8 @@ export async function handleAgentRequest(
       requestHeaders["x-openhive-gateway-secret"] = process.env.GATEWAY_SECRET;
     }
     requestHeaders["x-openhive-agent-port"] = "4000";
-    requestHeaders["X-OpenHive-User-Id"] = auth.user.id;
-    requestHeaders["X-OpenHive-User-Email"] = auth.user.email;
+    requestHeaders["X-OpenHive-User-Id"] = user.id;
+    requestHeaders["X-OpenHive-User-Email"] = user.email;
 
     console.log(
       `[AgentProxy] Outgoing Headers to ${targetUrl}:`,
@@ -152,7 +153,9 @@ export async function handleAgentRequest(
       method: req.method,
       headers: requestHeaders,
       body: body,
-      signal: req.signal,
+      // Use a custom 5-minute timeout signal to allow for cold starts,
+      // overriding potentially shorter client/request signals.
+      signal: AbortSignal.timeout(300000), 
       duplex: "half",
     } as any);
 

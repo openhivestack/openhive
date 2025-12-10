@@ -3,41 +3,55 @@ import { prisma } from "@/lib/db";
 import { validateAuth } from "@/lib/auth";
 import { cloudService } from "@/lib/cloud.service";
 
+import { handleAgentRequest } from "@/lib/agent-proxy";
+
 export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ slug: string; agentName: string }> }
 ) {
   const { slug, agentName } = await params;
+  
+  // If we have a path (e.g. from [...path]), pass it. Here we are at the root.
+  // BUT: handleAgentRequest treats GET to root as "return card". 
+  // We already implemented custom card logic below.
+  // So we keep our custom GET.
+
+  // ... implementation ...
+
   const owner = slug;
   const auth = await validateAuth();
 
   // 1. Resolve Owner (User or Organization)
-  // We check for User username first, then Organization slug
   let ownerId: string | undefined;
   let ownerType: "user" | "org" = "user";
 
-  const user = await prisma.user.findUnique({
-    where: { username: owner },
-  });
-
-  if (user) {
-    ownerId = user.id;
-    ownerType = "user";
+  if (owner === "-") {
+    // If slug is "-", we skip owner resolution and find agent by name only (legacy/global behavior)
+    // This supports agents that might not have correct owner linkage yet or for backward compatibility
   } else {
-    const org = await prisma.organization.findUnique({
-      where: { slug: owner },
+    const user = await prisma.user.findUnique({
+      where: { username: owner },
     });
-    if (org) {
-      ownerId = org.id;
-      ownerType = "org";
+  
+    if (user) {
+      ownerId = user.id;
+      ownerType = "user";
+    } else {
+      const org = await prisma.organization.findUnique({
+        where: { slug: owner },
+      });
+      if (org) {
+        ownerId = org.id;
+        ownerType = "org";
+      }
     }
-  }
-
-  if (!ownerId) {
-    return NextResponse.json(
-      { error: `Owner '${owner}' not found` },
-      { status: 404 }
-    );
+  
+    if (!ownerId) {
+      return NextResponse.json(
+        { error: `Owner '${owner}' not found` },
+        { status: 404 }
+      );
+    }
   }
 
   // 2. Find Agent belonging to this owner
@@ -45,10 +59,12 @@ export async function GET(
     name: agentName,
   };
 
-  if (ownerType === "user") {
-    where.userId = ownerId;
-  } else {
-    where.organizationId = ownerId;
+  if (ownerId) {
+    if (ownerType === "user") {
+      where.userId = ownerId;
+    } else {
+      where.organizationId = ownerId;
+    }
   }
 
   const agent = await prisma.agent.findFirst({
@@ -110,6 +126,9 @@ export async function GET(
     
     ...agentCard,
 
+    // Force URL to match this proxy, so clients (provider) use the correct endpoint
+    url: gupri,
+    
     // Database Fields
     id: agent.id, // Keep internal ID available
     name: agent.name,
@@ -128,4 +147,49 @@ export async function GET(
   };
 
   return NextResponse.json(card);
+}
+
+export async function POST(
+  req: NextRequest,
+  { params }: { params: Promise<{ slug: string; agentName: string }> }
+) {
+  console.log("[Proxy Route POST] Received request");
+  console.log("[Proxy Route POST] Headers:", {
+    cookie: req.headers.get("cookie") ? "Present" : "Missing",
+    host: req.headers.get("host"),
+    origin: req.headers.get("origin"),
+    contentType: req.headers.get("content-type")
+  });
+
+  const { slug, agentName } = await params;
+  const auth = await validateAuth();
+  if (!auth?.user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  return handleAgentRequest(req, auth.user, agentName, []);
+}
+
+export async function PUT(
+  req: NextRequest,
+  { params }: { params: Promise<{ slug: string; agentName: string }> }
+) {
+  const { agentName } = await params;
+  const auth = await validateAuth();
+  if (!auth?.user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  return handleAgentRequest(req, auth.user, agentName, []);
+}
+
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: Promise<{ slug: string; agentName: string }> }
+) {
+  const { agentName } = await params;
+  const auth = await validateAuth();
+  if (!auth?.user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  return handleAgentRequest(req, auth.user, agentName, []);
 }

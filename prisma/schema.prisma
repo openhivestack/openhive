@@ -212,8 +212,6 @@ model AgentVersion {
   version       String    // Semver: 1.0.0
   installCount  Int       @default(0)
   agentCard     Json      // .agent-card.json
-  // deploymentUrl was removed in favor of dynamic resolution
-
 
   // Relations
   agentName     String
