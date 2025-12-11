@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { validateAuth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { cloudService } from "@/lib/cloud.service";
+import { cloudService } from "@/lib/cloud/service";
 
 export async function GET(
   req: NextRequest,
@@ -68,9 +68,9 @@ export async function GET(
 
   // 5. Construct Response
   const creator = agent.user || (agent.organization ? {
-      name: agent.organization.name,
-      image: agent.organization.logo,
-      username: agent.organization.slug
+    name: agent.organization.name,
+    image: agent.organization.logo,
+    username: agent.organization.slug
   } : null);
 
   const card = {
@@ -103,7 +103,7 @@ export async function GET(
   const host = req.headers.get("host") || "localhost:3000";
   const protocol = process.env.NODE_ENV === "production" ? "https" : "http";
   // Fallback to 'user' if username is missing (shouldn't happen for valid users)
-  const ownerName = agent.user?.username || "unknown"; 
+  const ownerName = agent.user?.username || "unknown";
   const gupri = `${protocol}://${host}/api/agent/${ownerName}/${agentName}`;
 
   return NextResponse.json({

@@ -1,6 +1,6 @@
 "use client";
 
-import { authClient } from "@/lib/auth-client";
+import { authClient, useSession } from "@/lib/auth/client";
 import { useEffect, useState, useCallback } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -274,8 +274,8 @@ export default function ApiKeysPage() {
                         <TableCell>
                           {key.lastRequest
                             ? DateTime.fromJSDate(
-                                new Date(key.lastRequest)
-                              ).toRelative()
+                              new Date(key.lastRequest)
+                            ).toRelative()
                             : "Never"}
                         </TableCell>
                         <TableCell>

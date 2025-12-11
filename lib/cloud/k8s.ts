@@ -3,7 +3,7 @@ import {
   AgentTask,
   AgentMetrics,
   LogEvent,
-} from "./cloud-provider.interface";
+} from "./interface";
 
 import * as k8s from "@kubernetes/client-node";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { handleAgentRequest } from "@/lib/agent-proxy";
+import { handleAgentRequest } from "@/lib/services/agent-gateway";
 import { validateAuth } from "@/lib/auth";
 
 export async function GET(

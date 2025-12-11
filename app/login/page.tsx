@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/logo";
-import { signIn, signUp } from "@/lib/auth-client";
+import { authClient, signIn, signUp } from "@/lib/auth/client";
 import { AnimatedGradientText } from "@/components/ui/animated-gradient-text";
 import { config } from "@/lib/config";
 import { Input } from "@/components/ui/input";

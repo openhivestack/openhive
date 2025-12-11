@@ -18,7 +18,7 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { signOut, useSession } from "@/lib/auth-client";
+import { signOut, useSession, authClient } from "@/lib/auth/client";
 import { useRouter } from "next/navigation";
 
 export function NavUser() {

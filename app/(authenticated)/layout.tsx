@@ -2,7 +2,7 @@ import { ReactNode } from "react";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { validateAuth } from "@/lib/auth";
-import { isRootUser } from "@/lib/auth-helpers";
+import { isRootUser } from "@/lib/auth/utils";
 import { redirect } from "next/navigation";
 import { source } from "@/lib/source";
 

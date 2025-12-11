@@ -1,5 +1,6 @@
+
 import { NextRequest, NextResponse } from "next/server";
-import { openhive } from "@/lib/openhive-provider";
+import { openhive } from "@/lib/model-providers/openhive";
 import { convertToModelMessages, streamText } from "ai";
 import { validateAuth } from "@/lib/auth";
 
@@ -9,7 +10,7 @@ export async function POST(
   { params }: { params: Promise<{ slug: string; agentName: string }> }
 ) {
   const { slug, agentName } = await params;
-  
+
   // 1. Validate Auth (API Key or Session)
   const auth = await validateAuth();
   if (!auth?.user) {

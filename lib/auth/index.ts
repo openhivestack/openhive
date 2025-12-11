@@ -3,7 +3,7 @@ import { prismaAdapter } from "better-auth/adapters/prisma";
 import { headers } from "next/headers";
 import { Session } from "better-auth/types";
 import { nextCookies } from "better-auth/next-js";
-import { prisma } from "./db";
+import { prisma } from "../db";
 
 import {
   oneTimeToken,
@@ -58,7 +58,7 @@ const defaultPlugins = [
 // Async function to create auth instance
 async function createAuth() {
   let plugins: any[] = [...defaultPlugins];
-  
+
   try {
     // @ts-ignore - EE module might not exist
     const eeModule = await import("@/ee/lib/auth.config");

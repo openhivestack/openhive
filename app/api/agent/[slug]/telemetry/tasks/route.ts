@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { validateAuth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { AgentTask } from "@/lib/cloud-provider.interface";
+import { AgentTask } from "@/lib/cloud/interface";
 
 export async function GET(
   req: NextRequest,

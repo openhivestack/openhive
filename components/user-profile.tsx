@@ -1,7 +1,7 @@
 "use client";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { signOut, useSession } from "@/lib/auth-client";
+import { signOut, useSession, authClient } from "@/lib/auth/client";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,

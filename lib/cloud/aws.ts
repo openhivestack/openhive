@@ -3,7 +3,7 @@ import {
   AgentTask,
   AgentMetrics,
   LogEvent,
-} from "./cloud-provider.interface";
+} from "./interface";
 
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { CodeBuildClient, StartBuildCommand } from "@aws-sdk/client-codebuild";

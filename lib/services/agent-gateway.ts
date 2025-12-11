@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { validateAuth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { cloudService } from "@/lib/cloud.service";
+import { cloudService } from "@/lib/cloud/service";
 import { nanoid } from "nanoid";
 
 export async function handleAgentRequest(

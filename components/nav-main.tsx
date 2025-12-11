@@ -8,7 +8,7 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import Link from "next/link";
-import { useSession } from "@/lib/auth-client";
+import { authClient, useSession } from "@/lib/auth/client";
 import { DynamicIcon } from "lucide-react/dynamic";
 import { cn } from "@/lib/utils";
 import { usePathname } from "next/navigation";

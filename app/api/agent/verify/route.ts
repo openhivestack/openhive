@@ -3,7 +3,7 @@ import { prisma } from "@/lib/db";
 import { validateAuth } from "@/lib/auth";
 
 import { isFeatureEnabled } from "@/lib/features";
-import { isRootUser } from "@/lib/auth-helpers";
+import { isRootUser } from "@/lib/auth/utils";
 
 export async function POST(req: NextRequest) {
   if (!(await isFeatureEnabled("hub"))) {
@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
 
   // Root Check
   if (!isRootUser(authResult.user)) {
-     return NextResponse.json({ error: "Forbidden: Root access only" }, { status: 403 });
+    return NextResponse.json({ error: "Forbidden: Root access only" }, { status: 403 });
   }
 
   const body = await req.json();

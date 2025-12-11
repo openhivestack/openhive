@@ -1,5 +1,5 @@
 import { validateAuth } from "@/lib/auth";
-import { isRootUser } from "@/lib/auth-helpers";
+import { isRootUser } from "@/lib/auth/utils";
 import { redirect } from "next/navigation";
 import { ReactNode } from "react";
 import { SystemLayoutClient } from "./client-layout";

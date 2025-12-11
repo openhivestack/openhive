@@ -35,7 +35,7 @@ import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { DefaultChatTransport } from "ai";
 import { useChat } from "@ai-sdk/react";
-import { useSession } from "@/lib/auth-client";
+import { authClient, useSession } from "@/lib/auth/client";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {

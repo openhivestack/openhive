@@ -1,6 +1,6 @@
-import { CloudProvider } from "./cloud-provider.interface";
-import { AwsCloudProvider } from "./aws-cloud.provider";
-import { K8sCloudProvider } from "./k8s-cloud.provider";
+import { CloudProvider } from "./interface";
+import { AwsCloudProvider } from "./aws";
+import { K8sCloudProvider } from "./k8s";
 
 export class CloudService {
   private static instance: CloudProvider;

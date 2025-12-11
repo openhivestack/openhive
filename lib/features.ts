@@ -71,24 +71,24 @@ export interface NavItem {
 
 
 export const defaultNavItems: NavItem[] = [
-    {
-      name: "My Agents",
-      url: "/agent/list",
-      icon: "square-terminal",
-      display: [Display.Sidebar],
-    },
-    {
-      name: "Organization",
-      url: "/organization",
-      icon: "building-2",
-      display: [Display.Sidebar],
-    },
-    {
-      name: "Settings",
-      url: "/settings",
-      icon: "settings-2",
-      display: [Display.Sidebar],
-    },
+  {
+    name: "My Agents",
+    url: "/agent/list",
+    icon: "square-terminal",
+    display: [Display.Sidebar],
+  },
+  {
+    name: "Organization",
+    url: "/organization",
+    icon: "building-2",
+    display: [Display.Sidebar],
+  },
+  {
+    name: "Settings",
+    url: "/settings",
+    icon: "settings-2",
+    display: [Display.Sidebar],
+  },
 ];
 
 export async function getComputedNavigation(baseItems: NavItem[] = defaultNavItems): Promise<NavItem[]> {
@@ -105,10 +105,10 @@ export async function getComputedNavigation(baseItems: NavItem[] = defaultNavIte
 
   const finalItems = [...baseItems];
   if (finalItems.length > 0) {
-      // Insert after first item (usually "My Agents")
-      finalItems.splice(1, 0, ...featureItems);
+    // Insert after first item (usually "My Agents")
+    finalItems.splice(1, 0, ...featureItems);
   } else {
-      finalItems.push(...featureItems);
+    finalItems.push(...featureItems);
   }
 
   return finalItems;
@@ -116,7 +116,7 @@ export async function getComputedNavigation(baseItems: NavItem[] = defaultNavIte
 
 export async function getFilteredNavigation(user: any): Promise<NavItem[]> {
   // @ts-ignore
-  const { isRootUser } = await import("@/lib/auth-helpers");
+  const { isRootUser } = await import("@/lib/auth/utils");
   const navItems = await getComputedNavigation();
 
   return navItems.filter(item => {

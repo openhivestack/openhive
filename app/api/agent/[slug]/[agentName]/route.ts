@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { validateAuth } from "@/lib/auth";
-import { cloudService } from "@/lib/cloud.service";
+import { cloudService } from "@/lib/cloud/service";
 
-import { handleAgentRequest } from "@/lib/agent-proxy";
+import { handleAgentRequest } from "@/lib/services/agent-gateway";
 
 
 export async function GET(
@@ -11,7 +11,7 @@ export async function GET(
   { params }: { params: Promise<{ slug: string; agentName: string }> }
 ) {
   const { slug, agentName } = await params;
-  
+
   // If we have a path (e.g. from [...path]), pass it. Here we are at the root.
   // BUT: handleAgentRequest treats GET to root as "return card". 
   // We already implemented custom card logic below.
@@ -33,7 +33,7 @@ export async function GET(
     const user = await prisma.user.findUnique({
       where: { username: owner },
     });
-  
+
     if (user) {
       ownerId = user.id;
       ownerType = "user";
@@ -46,7 +46,7 @@ export async function GET(
         ownerType = "org";
       }
     }
-  
+
     if (!ownerId) {
       return NextResponse.json(
         { error: `Owner '${owner}' not found` },
@@ -95,7 +95,7 @@ export async function GET(
   // 3. Access Control
   if (!agent.isPublic) {
     if (!auth?.user || agent.userId !== auth.user.id) {
-       // TODO: Add org membership check here for private org agents
+      // TODO: Add org membership check here for private org agents
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
   }
@@ -124,12 +124,12 @@ export async function GET(
     },
     "@id": gupri,
     "@type": "dcat:Dataset",
-    
+
     ...agentCard,
 
     // Force URL to match this proxy, so clients (provider) use the correct endpoint
     url: gupri,
-    
+
     // Database Fields
     id: agent.id, // Keep internal ID available
     name: agent.name,
@@ -156,7 +156,7 @@ export async function POST(
 ) {
   const { slug, agentName } = await params;
   const auth = await validateAuth();
-  
+
   if (!auth?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }

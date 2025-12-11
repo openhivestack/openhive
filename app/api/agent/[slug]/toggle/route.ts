@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { validateAuth } from "@/lib/auth";
-import { cloudService } from "@/lib/cloud.service";
+import { cloudService } from "@/lib/cloud/service";
 
 export async function POST(
   req: NextRequest,
@@ -73,9 +73,8 @@ export async function POST(
     return NextResponse.json({
       success: true,
       status,
-      message: `Agent ${agentName} is being ${
-        status === "running" ? "started" : "stopped"
-      }.`,
+      message: `Agent ${agentName} is being ${status === "running" ? "started" : "stopped"
+        }.`,
     });
   } catch (error) {
     console.error("Toggle agent failed:", error);

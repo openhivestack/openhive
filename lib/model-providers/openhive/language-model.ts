@@ -94,7 +94,6 @@ export class OpenHiveChatLanguageModel implements LanguageModelV2 {
             }
 
             const result = (response as any).result;
-            console.log("[OpenHiveProvider] A2A Result:", JSON.stringify(result, null, 2));
 
             let text = "";
 
@@ -127,8 +126,6 @@ export class OpenHiveChatLanguageModel implements LanguageModelV2 {
                 }
             }
 
-            console.log("[OpenHiveProvider] Extracted Text:", text);
-
             return {
                 content: [{ type: 'text' as const, text }],
                 usage: {
@@ -160,23 +157,21 @@ export class OpenHiveChatLanguageModel implements LanguageModelV2 {
 
         const stream = new ReadableStream({
             start(controller) {
-                console.log("[OpenHiveProvider] doStream: Stream started");
                 result.content.forEach((part: any) => {
                     if (part.type === 'text') {
                         const partId = crypto.randomUUID();
-                        console.log("[OpenHiveProvider] doStream: Enqueuing text part", partId, part.text?.substring(0, 50));
                         controller.enqueue({ type: 'text-start', id: partId });
                         controller.enqueue({ type: 'text-delta', id: partId, delta: part.text });
                         controller.enqueue({ type: 'text-end', id: partId });
                     }
                 });
 
-                console.log("[OpenHiveProvider] doStream: Stream finishing");
                 controller.enqueue({
                     type: 'finish',
                     finishReason: result.finishReason,
                     usage: result.usage,
                 });
+                
                 controller.close();
             }
         });
