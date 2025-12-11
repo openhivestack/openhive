@@ -4,10 +4,9 @@ import { validateAuth } from "@/lib/auth";
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: Promise<{ slug: string }> }
+  { params }: { params: Promise<{ agentName: string }> }
 ) {
-  const { slug } = await params;
-  const agentName = slug;
+  const { agentName } = await params;
 
   const auth = await validateAuth();
   if (!auth?.user) {
@@ -19,10 +18,9 @@ export async function GET(
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: Promise<{ slug: string }> }
+  { params }: { params: Promise<{ agentName: string }> }
 ) {
-  const { slug } = await params;
-  const agentName = slug;
+  const { agentName } = await params;
 
   const auth = await validateAuth();
   if (!auth?.user) {
@@ -34,10 +32,9 @@ export async function POST(
 
 export async function PUT(
   req: NextRequest,
-  { params }: { params: Promise<{ slug: string }> }
+  { params }: { params: Promise<{ agentName: string }> }
 ) {
-  const { slug } = await params;
-  const agentName = slug;
+  const { agentName } = await params;
 
   const auth = await validateAuth();
   if (!auth?.user) {
@@ -49,10 +46,9 @@ export async function PUT(
 
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: Promise<{ slug: string }> }
+  { params }: { params: Promise<{ agentName: string }> }
 ) {
-  const { slug } = await params;
-  const agentName = slug;
+  const { agentName } = await params;
 
   const auth = await validateAuth();
   if (!auth?.user) {

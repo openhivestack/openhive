@@ -7,9 +7,9 @@ import { validateAuth } from "@/lib/auth";
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: Promise<{ slug: string; agentName: string }> }
+  { params }: { params: Promise<{ agentName: string }> }
 ) {
-  const { slug, agentName } = await params;
+  const { agentName } = await params;
 
   // 1. Validate Auth (API Key or Session)
   const auth = await validateAuth();
@@ -19,8 +19,8 @@ export async function POST(
 
   // 2. Resolve Agent URL
   // We use the OpenHive proxy URL to leverage existing logic for resolving internal/external agents.
-  // The proxy is available at /api/agent/[slug]/[agentName].
-  const proxyUrl = `${process.env.NEXT_PUBLIC_APP_URL}/api/agent/${slug}/${agentName}`;
+  // The proxy is available at /api/agent/[agentName].
+  const proxyUrl = `${process.env.NEXT_PUBLIC_APP_URL}/api/agent/${agentName}`;
 
   try {
     const { messages } = await req.json();
@@ -59,7 +59,7 @@ export async function POST(
 
     return result.toUIMessageStreamResponse();
   } catch (error: any) {
-    console.error(`[AgentCall] Error calling agent ${slug}/${agentName}:`, error);
+    console.error(`[AgentCall] Error calling agent ${agentName}:`, error);
     return NextResponse.json(
       { error: "Failed to call agent", details: error.message },
       { status: 500 }

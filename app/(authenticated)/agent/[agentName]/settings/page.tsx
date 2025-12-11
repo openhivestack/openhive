@@ -43,7 +43,11 @@ export default function SettingsPage() {
   const handleDelete = async () => {
     setIsDeleting(true);
     try {
-      const res = await fetch(`/api/agent/${agentName}`, { method: "DELETE" });
+      const res = await fetch(`/api/agent/${agentName}/toggle`, {
+        method: "POST",
+        body: JSON.stringify({ status: "stopped" }),
+        headers: { "Content-Type": "application/json" },
+      });
       const data = await res.json();
 
       if (!res.ok) throw new Error(data.message || "Failed to delete");

@@ -19,7 +19,6 @@ export default async function HubPage({ searchParams }: { searchParams: Promise<
 
   const agents = await prisma.agent.findMany({
     where: {
-      verificationStatus: "VERIFIED",
       isPublic: true,
       name: {
         contains: q || "",
@@ -38,7 +37,7 @@ export default async function HubPage({ searchParams }: { searchParams: Promise<
       },
     },
     orderBy: {
-      verifiedAt: 'desc',
+      createdAt: 'desc',
     }
   });
 
@@ -84,11 +83,11 @@ export default async function HubPage({ searchParams }: { searchParams: Promise<
           </div>
 
           <h1 className="text-2xl font-extrabold tracking-tight lg:text-4xl">
-            Discover <AnimatedGradientText>Verified Agents</AnimatedGradientText>
+            Discover <AnimatedGradientText>Available Agents</AnimatedGradientText>
           </h1>
 
           <p className="text-lg text-muted-foreground max-w-2xl">
-            Explore the official OpenHive Hub for secure, reviewed, and community-trusted autonomous agents.
+            Explore the official OpenHive Hub for autonomous agents.
           </p>
 
           {/* Search Bar - Elevated */}
@@ -114,7 +113,7 @@ export default async function HubPage({ searchParams }: { searchParams: Promise<
         {(q || agents.length > 0) && (
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold text-foreground">
-              {q ? `Search results for "${q}"` : "Recently Verified"}
+              {q ? `Search results for "${q}"` : "Recently Added"}
             </h2>
             <Badge variant="outline" className="text-muted-foreground">
               {agents.length} {agents.length === 1 ? 'agent' : 'agents'} found
@@ -134,8 +133,8 @@ export default async function HubPage({ searchParams }: { searchParams: Promise<
                   <EmptyTitle>No agents found</EmptyTitle>
                   <EmptyDescription>
                     {q
-                      ? `We couldn't find any verified agents matching "${q}". Try adjusting your search or browse all agents.`
-                      : "There are no verified agents in the Hub yet. Be the first to submit one!"}
+                      ? `We couldn't find any agents matching "${q}". Try adjusting your search or browse all agents.`
+                      : "There are no agents in the Hub yet. Be the first to submit one!"}
                   </EmptyDescription>
                 </EmptyHeader>
                 {q && (

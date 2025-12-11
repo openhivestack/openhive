@@ -282,7 +282,7 @@ export function AgentPublicPage({ agent }: AgentPublicPageProps) {
   const ownerSlug = agent.organization?.slug || agent.creator?.username || "-";
   const { messages, sendMessage, status } = useChat({
     transport: new DefaultChatTransport({
-      api: `/api/agent/${ownerSlug}/${agent.name}/call`,
+      api: `/api/agent/${agent.name}/call`,
     }),
     onError: (e) => {
       console.error("Chat error:", e);

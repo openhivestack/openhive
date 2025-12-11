@@ -112,34 +112,34 @@ export const api = {
   /**
    * Search for agents (alias for api.agent.search).
    */
-  search: async (query: string, page = 1, limit = 20) => {
-    return api.agent.search(query, page, limit);
+  search: async (query: string, page = 1, limit = 20, scope?: string) => {
+    return api.agent.search(query, page, limit, scope);
   },
   agent: {
     /**
      * Search for agents by name, description, or tags.
      */
-    search: async (query: string, page = 1, limit = 20) => {
+    search: async (query: string, page = 1, limit = 20, scope?: string) => {
       const data = await fetchJson<{
         agents: AgentDetail[];
         pagination: PaginationMeta;
       }>("/agent/search", {
         method: "POST",
-        body: JSON.stringify({ query, page, limit }),
+        body: JSON.stringify({ query, page, limit, scope }),
       });
       return data;
     },
 
     /**
-     * List recent public agents.
+     * List recent agents.
      */
-    list: async (page = 1, limit = 20) => {
+    list: async (page = 1, limit = 20, scope?: string) => {
       const data = await fetchJson<{
         agents: AgentDetail[];
         pagination: PaginationMeta;
       }>("/agent/search", {
         method: "POST",
-        body: JSON.stringify({ query: "", page, limit }),
+        body: JSON.stringify({ query: "", page, limit, scope }),
       });
       return data;
     },

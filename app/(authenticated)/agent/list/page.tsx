@@ -48,9 +48,9 @@ export default function AgentsPage() {
       try {
         let fetchedData;
         if (query) {
-          fetchedData = await api.agent.search(query, page);
+          fetchedData = await api.agent.search(query, page, 20, "self");
         } else {
-          fetchedData = await api.agent.list(page);
+          fetchedData = await api.agent.list(page, 20, "self");
         }
         setAgents(fetchedData.agents);
         setPagination(fetchedData.pagination);

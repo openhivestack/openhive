@@ -21,43 +21,42 @@ function resolveAgentAndPath(slug: string, path: string[]) {
 
 async function handleRequest(
   req: NextRequest,
-  params: Promise<{ slug: string; path: string[] }>
+  params: Promise<{ agentName: string; path: string[] }>
 ) {
-  const { slug, path } = await params;
+  const { agentName, path } = await params;
   const auth = await validateAuth();
   if (!auth?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { agentName, subPath } = resolveAgentAndPath(slug, path);
-
-  return handleAgentRequest(req, auth.user, agentName, subPath);
+  // Path is already the subpath since we are at /api/agent/[agentName]/[...path]
+  return handleAgentRequest(req, auth.user, agentName, path);
 }
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: Promise<{ slug: string; path: string[] }> }
+  { params }: { params: Promise<{ agentName: string; path: string[] }> }
 ) {
   return handleRequest(req, params);
 }
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: Promise<{ slug: string; path: string[] }> }
+  { params }: { params: Promise<{ agentName: string; path: string[] }> }
 ) {
   return handleRequest(req, params);
 }
 
 export async function PUT(
   req: NextRequest,
-  { params }: { params: Promise<{ slug: string; path: string[] }> }
+  { params }: { params: Promise<{ agentName: string; path: string[] }> }
 ) {
   return handleRequest(req, params);
 }
 
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: Promise<{ slug: string; path: string[] }> }
+  { params }: { params: Promise<{ agentName: string; path: string[] }> }
 ) {
   return handleRequest(req, params);
 }

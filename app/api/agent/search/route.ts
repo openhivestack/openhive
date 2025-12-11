@@ -4,7 +4,7 @@ import { QueryParser } from "@/lib/query-parser";
 import { validateAuth } from "@/lib/auth";
 
 export async function POST(req: NextRequest) {
-  const { query, page = 1, limit = 20 } = await req.json();
+  const { query, page = 1, limit = 20, scope } = await req.json();
   const auth = await validateAuth();
 
   const pageNum = Math.max(1, parseInt(page));
@@ -12,13 +12,22 @@ export async function POST(req: NextRequest) {
   const skip = (pageNum - 1) * limitNum;
 
   try {
-    // Default: Public agents + My Private agents (if logged in)
-    const where: any = {
-      OR: [
-        { isPublic: true },
-        ...(auth?.user ? [{ userId: auth.user.id }] : []),
-      ],
-    };
+    let where: any = {};
+
+    if (scope === 'self') {
+      if (!auth?.user) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      }
+      where = { userId: auth.user.id };
+    } else {
+      // Default: Public agents + My Private agents (if logged in)
+      where = {
+        OR: [
+          { isPublic: true },
+          ...(auth?.user ? [{ userId: auth.user.id }] : []),
+        ],
+      };
+    }
 
     if (query) {
       const parser = new QueryParser();
@@ -143,9 +152,8 @@ export async function POST(req: NextRequest) {
       agents: enrichedAgents.map(a => {
         const host = req.headers.get("host") || "localhost:3000";
         const protocol = process.env.NODE_ENV === "production" ? "https" : "http";
-        const ownerName = a.user?.username || "unknown";
-        const gupri = `${protocol}://${host}/api/agent/${ownerName}/${a.name}`;
-        
+        const gupri = `${protocol}://${host}/api/agent/${a.name}`;
+
         return {
           ...a,
           "@id": gupri,

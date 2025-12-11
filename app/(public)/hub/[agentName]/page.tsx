@@ -12,11 +12,10 @@ interface Props {
 export default async function PublicAgentPage({ params }: Props) {
   const { agentName } = await params;
 
-  const agent = await prisma.agent.findUnique({
+  const agent = await prisma.agent.findFirst({
     where: {
       name: agentName,
       isPublic: true,
-      verificationStatus: "VERIFIED",
     },
     include: {
       user: true,

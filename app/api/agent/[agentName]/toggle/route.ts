@@ -5,10 +5,9 @@ import { cloudService } from "@/lib/cloud/service";
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: Promise<{ slug: string }> }
+  { params }: { params: Promise<{ agentName: string }> }
 ) {
-  const { slug } = await params;
-  const agentName = slug;
+  const { agentName } = await params;
   const auth = await validateAuth();
 
   if (!auth?.user) {

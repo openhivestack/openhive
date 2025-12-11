@@ -25,7 +25,15 @@ export async function POST(req: NextRequest) {
     }
 
     const agentCard = JSON.parse(metadataJson);
-    const { name, description, version, runtime, tags } = agentCard;
+    const {
+      // Identity
+      name, description, image, homepage, repository,
+      onChainId, onChainRegistry, // EIP-8004
+      // Version / Core
+      version, runtime, tags,
+      // Capabilities
+      instructions, prompts, skills, capabilities, tools
+    } = agentCard;
 
     if (!name || !version) {
       return NextResponse.json(
@@ -64,6 +72,9 @@ export async function POST(req: NextRequest) {
           version: version,
         },
       },
+      include: {
+        agent: true
+      }
     });
 
     if (existingVersion && !force) {
@@ -81,7 +92,8 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 4. Upsert Agent
+    // 4. Upsert Agent (Parent)
+    // We still update description/tags on the parent for backward compatibility / search indices
     const agent = await prisma.agent.upsert({
       where: { name },
       update: {
@@ -101,32 +113,70 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // 5. Upload to Cloud (Source Only)
+    // 5. Upsert Agent Profile (Identity)
+    // This is the new mutable home for display metadata.
+    await prisma.agentProfile.upsert({
+      where: { agentName: name },
+      create: {
+        agentName: name,
+        displayName: name, // Default to slug if no display name provided in card (future field)
+        description,
+        image,
+        tags: tags || [],
+        homepage,
+        repository,
+        onChainId,
+        onChainRegistry,
+      },
+      update: {
+        description,
+        image,
+        tags: tags || [],
+        homepage,
+        repository,
+        onChainId,
+        onChainRegistry,
+      }
+    });
+
+    // 6. Upload to Cloud (Source Only)
     const buffer = Buffer.from(await file.arrayBuffer());
     const sourceUrl = await cloudService.uploadSource(name, version, buffer);
 
-    // 6. Store Version Data (Without deployment modification)
+    // 7. Store Version Data (Capabilities)
     const storedCard = {
       ...agentCard,
       sourceUrl,
-      // We do NOT modify url here. It remains as defined in the local .agent-card.json
     };
     delete storedCard.files;
 
+    const versionData = {
+      // Core
+      version,
+      agentName: name,
+      // Capabilities
+      instructions,
+      prompts: prompts || [],
+      skills: skills || [],
+      capabilities: capabilities || {},
+      tools: tools || [],
+      // Legacy / Backup
+      agentCard: storedCard,
+    };
+
     if (existingVersion && force) {
       await prisma.agentVersion.update({
-        where: { id: (existingVersion as any).id },
+        where: { id: existingVersion.id },
         data: {
-          agentCard: storedCard,
-          // deploymentUrl was removed
+          ...versionData,
+          agentCard: storedCard // Ensure typescript is happy with the Json type
         },
       });
     } else {
       await prisma.agentVersion.create({
         data: {
-          version,
-          agentName: name,
-          agentCard: storedCard,
+          ...versionData,
+          agentCard: storedCard
         },
       });
     }

@@ -200,6 +200,9 @@ model Agent {
   verificationStatus String   @default("UNVERIFIED") // "UNVERIFIED", "PENDING", "VERIFIED", "REJECTED"
   verifiedAt         DateTime?
 
+  // Profile (Detached Identity)
+  profile     AgentProfile?
+
   @@map("agent")
   @@index([name,did])
   @@index([userId])
@@ -211,7 +214,14 @@ model AgentVersion {
   id            String    @id @default(cuid())
   version       String    // Semver: 1.0.0
   installCount  Int       @default(0)
-  agentCard     Json      // .agent-card.json
+  agentCard     Json      // .agent-card.json (Deprecated in favor of flattened fields)
+
+  // Flattened Capabilities
+  instructions String?
+  prompts      Json?
+  skills       Json?
+  capabilities Json?
+  tools        Json?
 
   // Relations
   agentName     String
@@ -222,6 +232,29 @@ model AgentVersion {
 
   @@unique([agentName, version])
   @@map("agentVersion")
+}
+
+model AgentProfile {
+  id        String   @id @default(cuid())
+  agentName String   @unique // Foreign Key to Agent.name
+  agent     Agent    @relation(fields: [agentName], references: [name], onDelete: Cascade)
+
+  // Identity / Display
+  displayName String?
+  description String?
+  image       String?
+  tags        String[]
+  homepage    String?
+  repository  String?
+
+  // EIP-8004 External Identities
+  onChainId       String?   // ERC-721 Token ID
+  onChainRegistry String?   // Registry Contract Address
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("agentProfile")
 }
 
 model AgentExecution {
