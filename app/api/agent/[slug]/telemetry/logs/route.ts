@@ -32,7 +32,7 @@ export async function GET(
     const logs = await cloudService.getAgentLogs(agentName);
     return NextResponse.json({ logs });
   } catch (error: any) {
-    console.error("Error fetching logs:", error);
+    console.error(`[TelemetryLogs] Error in logs route:`, error);
     return NextResponse.json(
       { error: "Failed to fetch logs", details: error.message },
       { status: 500 }

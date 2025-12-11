@@ -5,6 +5,7 @@ import { cloudService } from "@/lib/cloud.service";
 
 import { handleAgentRequest } from "@/lib/agent-proxy";
 
+
 export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ slug: string; agentName: string }> }
@@ -153,16 +154,9 @@ export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ slug: string; agentName: string }> }
 ) {
-  console.log("[Proxy Route POST] Received request");
-  console.log("[Proxy Route POST] Headers:", {
-    cookie: req.headers.get("cookie") ? "Present" : "Missing",
-    host: req.headers.get("host"),
-    origin: req.headers.get("origin"),
-    contentType: req.headers.get("content-type")
-  });
-
   const { slug, agentName } = await params;
   const auth = await validateAuth();
+  
   if (!auth?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }

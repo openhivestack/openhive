@@ -65,10 +65,11 @@ export async function GET(
       },
     });
   } catch (error: any) {
-    console.error("Error fetching tasks:", error);
+    console.error(`[TelemetryTasks] Error in tasks route:`, error);
     return NextResponse.json(
       { error: "Failed to fetch tasks", details: error.message },
       { status: 500 }
     );
   }
 }
+

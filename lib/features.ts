@@ -1,5 +1,6 @@
 
 // Base OSS features
+
 const coreFeatures = {
   // Define always-verified OSS features here if any
   // e.g. basic_agent: { enabled: true, description: "Basic Agent Registry" }
@@ -35,7 +36,7 @@ async function loadFeatures(): Promise<Features> {
     }
   } catch (e) {
     // EE module not found, proceed with core features only
-    console.log("EE features not found, running in OSS mode.");
+    console.log("[Features] EE features not found, running in OSS mode.");
   }
 
   loadedFeatures = merged;

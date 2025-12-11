@@ -76,7 +76,7 @@ export async function handleAgentRequest(
 
   if (isPlatformHosted) {
     const internalUrl = await cloudService.getInternalAgentUrl(agentName);
-    console.log(`[Agent Proxy] Internal URL: ${internalUrl}`);
+    console.log(`[AgentProxy] Internal URL: ${internalUrl}`);
     if (internalUrl) {
       targetBaseUrl = internalUrl;
     }
@@ -90,9 +90,8 @@ export async function handleAgentRequest(
   }
 
   // 5. Construct Target URL
-  const targetUrl = `${targetBaseUrl.replace(/\/$/, "")}/${joinedPath}${
-    req.nextUrl.search
-  }`;
+  const targetUrl = `${targetBaseUrl.replace(/\/$/, "")}/${joinedPath}${req.nextUrl.search
+    }`;
 
   // 6. Proxy Request
   try {
@@ -118,11 +117,6 @@ export async function handleAgentRequest(
     requestHeaders["X-OpenHive-User-Id"] = user.id;
     requestHeaders["X-OpenHive-User-Email"] = user.email;
 
-    console.log(
-      `[AgentProxy] Outgoing Headers to ${targetUrl}:`,
-      JSON.stringify(requestHeaders, null, 2)
-    );
-
     // Attempt to inspect body for Task ID if JSON
     let body: any = req.body;
     let taskId = nanoid();
@@ -145,7 +139,7 @@ export async function handleAgentRequest(
         }
       } catch (e) {
         // Ignore body parse errors, fallback to random ID
-        console.warn("[Agent Proxy] Failed to parse JSON body:", e);
+        console.warn(`[AgentProxy] Failed to parse JSON body: ${e}`);
       }
     }
 
@@ -155,17 +149,12 @@ export async function handleAgentRequest(
       body: body,
       // Use a custom 5-minute timeout signal to allow for cold starts,
       // overriding potentially shorter client/request signals.
-      signal: AbortSignal.timeout(300000), 
+      signal: AbortSignal.timeout(300000),
       duplex: "half",
     } as any);
 
     console.log(
       `[AgentProxy] Response from ${targetUrl}: ${response.status} ${response.statusText}`
-    );
-    console.log(
-      `[AgentProxy] Response Content-Type: ${response.headers.get(
-        "content-type"
-      )}`
     );
 
     // If JSON, let's peek at it for debugging purposes if it's not a stream
@@ -178,9 +167,6 @@ export async function handleAgentRequest(
       try {
         const clone = response.clone();
         const text = await clone.text();
-        console.log(
-          `[AgentProxy] Response Body Preview: ${text.slice(0, 500)}`
-        );
       } catch (_) {
         console.log("[AgentProxy] Could not read response body preview.");
       }
@@ -230,7 +216,7 @@ export async function handleAgentRequest(
         },
       });
     } catch (logError) {
-      console.error("Failed to log agent execution:", logError);
+      console.error("[AgentProxy] Failed to log agent execution:", String(logError));
     }
 
     return new NextResponse(response.body, {
@@ -239,7 +225,7 @@ export async function handleAgentRequest(
       headers: responseHeaders,
     });
   } catch (error: any) {
-    console.error(`Proxy error to ${targetUrl}:`, error);
+    console.error(`[AgentProxy] Proxy error to ${targetUrl}:`, String(error));
     return NextResponse.json(
       { error: "Failed to contact agent", details: error.message },
       { status: 502 }

@@ -4,6 +4,7 @@ import {
   AgentMetrics,
   LogEvent,
 } from "./cloud-provider.interface";
+
 import * as k8s from "@kubernetes/client-node";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 
@@ -260,7 +261,7 @@ export class K8sCloudProvider implements CloudProvider {
           namespace: this.namespace,
           body: service,
         });
-        console.log(`[K8s] Created Service: ${serviceName}`, service);
+        console.log(`[K8s] Created Service: ${serviceName}`);
       } catch (createError) {
         console.error(
           `[K8s] Failed to create service ${serviceName}`,

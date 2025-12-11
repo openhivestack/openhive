@@ -152,7 +152,7 @@ export async function GET(
 
     return NextResponse.json({ metrics });
   } catch (error: any) {
-    console.error("Error fetching metrics:", error);
+    console.error(`[TelemetryMetrics] Error in metrics route:`, error);
     return NextResponse.json(
       { error: "Failed to fetch metrics", details: error.message },
       { status: 500 }

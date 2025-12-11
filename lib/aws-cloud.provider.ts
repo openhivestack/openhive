@@ -4,6 +4,7 @@ import {
   AgentMetrics,
   LogEvent,
 } from "./cloud-provider.interface";
+
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { CodeBuildClient, StartBuildCommand } from "@aws-sdk/client-codebuild";
 import {
@@ -252,7 +253,7 @@ export class AwsCloudProvider implements CloudProvider {
 
       if (registryArn && !hasRegistry) {
         console.log(
-          `Service ${serviceName} exists but is missing Service Registry. Recreating...`
+          `Service ${serviceName} has running tasks. Waiting for stabilization...`
         );
         // 1. Update desired count to 0 (optional, but good practice before delete)
         await this.ecs.send(
@@ -297,7 +298,7 @@ export class AwsCloudProvider implements CloudProvider {
           // Actually, you can't have two services with same name.
           // If it's still draining, we probably can't create.
           console.warn(
-            `Service ${serviceName} is still draining. Attempting creation anyway...`
+            `Service ${serviceName} did not stabilize in time, proceeding anyway.`
           );
         }
 

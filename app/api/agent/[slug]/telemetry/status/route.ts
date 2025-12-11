@@ -30,7 +30,7 @@ export async function GET(
     const status = await cloudService.getAgentStatus(agentName);
     return NextResponse.json({ status });
   } catch (error: any) {
-    console.error("Error fetching status:", error);
+    console.error(`[TelemetryStatus] Error in status route:`, error);
     return NextResponse.json(
       { error: "Failed to fetch status", details: error.message },
       { status: 500 }

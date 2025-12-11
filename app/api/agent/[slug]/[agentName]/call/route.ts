@@ -56,9 +56,9 @@ export async function POST(
       messages: convertToModelMessages(messages),
     });
 
-    return result.toTextStreamResponse();
+    return result.toUIMessageStreamResponse();
   } catch (error: any) {
-    console.error(`[Agent Call] Error calling agent ${slug}/${agentName}:`, error);
+    console.error(`[AgentCall] Error calling agent ${slug}/${agentName}:`, error);
     return NextResponse.json(
       { error: "Failed to call agent", details: error.message },
       { status: 500 }

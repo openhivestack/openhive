@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { validateAuth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { cloudService } from "@/lib/cloud.service";
+
 import semver from "semver";
 
 export async function POST(req: NextRequest) {
@@ -132,7 +133,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true, agent, sourceUrl });
   } catch (error: any) {
-    console.error("Push error:", error);
+    console.error(`[AgentPush] Push error:`, error);
     return NextResponse.json(
       { error: error.message || "Internal server error" },
       { status: 500 }

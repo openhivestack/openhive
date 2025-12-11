@@ -3,6 +3,7 @@ import { validateAuth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { cloudService } from "@/lib/cloud.service";
 
+
 export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ slug: string }> }
@@ -31,7 +32,7 @@ export async function GET(
     const envVars = await cloudService.getEnvironmentVariables(agentName);
     return NextResponse.json({ envVars });
   } catch (error: any) {
-    console.error("Error fetching environment variables:", error);
+    console.error(`[AgentConfig] Error fetching environment variables:`, error);
     return NextResponse.json(
       {
         error: "Failed to fetch environment variables",
@@ -80,7 +81,7 @@ export async function POST(
     await cloudService.updateEnvironmentVariables(agentName, envVars);
     return NextResponse.json({ success: true });
   } catch (error: any) {
-    console.error("Error updating environment variables:", error);
+    console.error(`[AgentConfig] Error updating environment variables:`, error);
     return NextResponse.json(
       {
         error: "Failed to update environment variables",

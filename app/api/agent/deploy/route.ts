@@ -113,7 +113,7 @@ export async function POST(req: NextRequest) {
       // internalUrl: deploymentUrl, // Optional to return, but not stored
     });
   } catch (error: any) {
-    console.error("Deploy error:", error);
+    console.error(`[AgentDeploy] Deploy error:`, error);
     return NextResponse.json(
       { error: error.message || "Internal server error" },
       { status: 500 }

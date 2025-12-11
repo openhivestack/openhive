@@ -87,7 +87,7 @@ class AgentManager {
 
   async checkIdleAgents() {
     const now = new Date();
-    const IDLE_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
+    const IDLE_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes
 
     console.log(`[AgentManager] Checking for idle agents... (${this.activeAgents.size} tracked)`);
 

@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 import { Session } from "better-auth/types";
 import { nextCookies } from "better-auth/next-js";
 import { prisma } from "./db";
+
 import {
   oneTimeToken,
   admin,
@@ -170,7 +171,7 @@ export async function validateAuth(): Promise<ValidationResult | null> {
         }
       }
     } catch (error) {
-      console.error("API Key validation failed:", error);
+      console.error(`[Auth] API Key validation failed: ${error}`);
       return null;
     }
   }
