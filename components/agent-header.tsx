@@ -54,8 +54,7 @@ export const AgentHeader = () => {
                 <Skeleton className="h-4 w-12" />
               ) : (
                 <Badge
-                  variant={runtimeStatus === "RUNNING" ? "running" : "stopped"}
-                  size="sm"
+                  variant={runtimeStatus === "RUNNING" ? "default" : "destructive"}
                 >
                   {runtimeStatus === "RUNNING" ? "Running" : runtimeStatus}
                 </Badge>

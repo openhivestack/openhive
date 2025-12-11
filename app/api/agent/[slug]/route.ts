@@ -1,5 +1,6 @@
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { handleAgentRequest } from "@/lib/agent-proxy";
+import { validateAuth } from "@/lib/auth";
 
 export async function GET(
   req: NextRequest,
@@ -7,7 +8,13 @@ export async function GET(
 ) {
   const { slug } = await params;
   const agentName = slug;
-  return handleAgentRequest(req, agentName);
+
+  const auth = await validateAuth();
+  if (!auth?.user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  return handleAgentRequest(req, auth.user, agentName);
 }
 
 export async function POST(
@@ -16,7 +23,13 @@ export async function POST(
 ) {
   const { slug } = await params;
   const agentName = slug;
-  return handleAgentRequest(req, agentName);
+
+  const auth = await validateAuth();
+  if (!auth?.user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  return handleAgentRequest(req, auth.user, agentName);
 }
 
 export async function PUT(
@@ -25,7 +38,13 @@ export async function PUT(
 ) {
   const { slug } = await params;
   const agentName = slug;
-  return handleAgentRequest(req, agentName, []);
+
+  const auth = await validateAuth();
+  if (!auth?.user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  return handleAgentRequest(req, auth.user, agentName, []);
 }
 
 export async function DELETE(
@@ -34,5 +53,11 @@ export async function DELETE(
 ) {
   const { slug } = await params;
   const agentName = slug;
-  return handleAgentRequest(req, agentName, []);
+
+  const auth = await validateAuth();
+  if (!auth?.user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  return handleAgentRequest(req, auth.user, agentName, []);
 }
