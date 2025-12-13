@@ -6,16 +6,21 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
 import { AnimatedThemeToggler } from "@/components/ui/animated-theme-toggler";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
+import { getUserSubscription } from "@/ee/lib/actions/billing";
+import { RedirectToCheckout } from "@/components/billing/redirect-to-checkout";
+import { ManageSubscription } from "@/components/billing/manage-subscription";
+import { Badge } from "@/components/ui/badge";
 
 export default function SettingsPage() {
   const { data: session, isPending, refetch } = useSession();
   const [name, setName] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const [subscription, setSubscription] = useState<any>(null);
+  const [showBilling, setShowBilling] = useState(false);
 
   // Sync state with session data
   useEffect(() => {
@@ -23,6 +28,14 @@ export default function SettingsPage() {
       setName(session.user.name || "");
     }
   }, [session]);
+
+  // Fetch subscription and feature flag
+  useEffect(() => {
+    if (process.env.NEXT_PUBLIC_ENABLE_BILLING === 'true') {
+      setShowBilling(true);
+      getUserSubscription().then(setSubscription);
+    }
+  }, []);
 
   const handleSaveProfile = async () => {
     if (!name.trim()) return;
@@ -105,6 +118,42 @@ export default function SettingsPage() {
           </Button>
         </CardFooter>
       </Card>
+
+      {/* Billing Section (Personal) */}
+      {showBilling && showBilling === true && (
+        <Card className={subscription?.status === 'active' ? "border-primary/50 bg-primary/5" : ""}>
+          <CardHeader>
+            <CardTitle className="flex justify-between items-center">
+              Plan & Billing
+              {subscription?.status === 'active' && <Badge>Pro Active</Badge>}
+            </CardTitle>
+            <CardDescription>
+              Manage your personal subscription.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <div>
+                <div className="text-2xl font-bold">
+                  {subscription?.status === 'active' ? "Pro Plan" : "Free Plan"}
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  {subscription?.status === 'active'
+                    ? "You have access to all Pro features."
+                    : "Upgrade to unlock private agents and more."}
+                </div>
+              </div>
+              <div className="w-full sm:w-auto">
+                {subscription?.status === 'active' ? (
+                  <ManageSubscription referenceId={user?.id || ""} returnUrl="/settings" />
+                ) : (
+                  <RedirectToCheckout referenceId={user?.id || ""} returnUrl="/settings" />
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Appearance Section */}
       <Card>

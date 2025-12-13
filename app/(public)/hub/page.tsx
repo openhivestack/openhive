@@ -83,7 +83,7 @@ export default async function HubPage({ searchParams }: { searchParams: Promise<
           </div>
 
           <h1 className="text-2xl font-extrabold tracking-tight lg:text-4xl">
-            Discover <AnimatedGradientText>Available Agents</AnimatedGradientText>
+            Discover <AnimatedGradientText>Global Agents</AnimatedGradientText>
           </h1>
 
           <p className="text-lg text-muted-foreground max-w-2xl">

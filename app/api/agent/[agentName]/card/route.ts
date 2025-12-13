@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { validateAuth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { cloudService } from "@/lib/cloud/service";
+import { globalRateLimiter } from "@/lib/rate-limit";
 
 export async function GET(
   req: NextRequest,
@@ -9,6 +10,15 @@ export async function GET(
 ) {
   const { agentName } = await params;
   const auth = await validateAuth();
+
+  // Rate Limit Guests
+  if (!auth?.user) {
+    const ip = req.headers.get("x-forwarded-for") || "unknown";
+    const limit = globalRateLimiter.check(ip, 10); // 10 req/min for card details
+    if (!limit.success) {
+      return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+    }
+  }
 
   // 1. Fetch Agent with Latest Version, Profile, and Creator info
   const agent = await prisma.agent.findUnique({

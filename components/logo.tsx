@@ -34,11 +34,11 @@ export function Logo({ hideText, size = "size-12", className, animated = false }
         />
         {!hideText && (
           animated ? (
-            <AnimatedGradientText className="text-sm font-bold">
-            {config.appName}
-          </AnimatedGradientText>
+            <AnimatedGradientText className="text-lg font-extrabold">
+              {config.appName}
+            </AnimatedGradientText>
           ) : (
-            <span className="text-sm font-bold">
+            <span className="text-lg font-extrabold">
               {config.appName}
             </span>
           )

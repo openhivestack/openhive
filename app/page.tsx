@@ -11,7 +11,7 @@ import {
   TooltipTrigger,
   TooltipContent,
 } from "@/components/ui/tooltip";
-import { Info, Star } from "lucide-react";
+import { Info, Star, Zap, ShieldCheck, Code } from "lucide-react";
 import { AnimatedGradientText } from "@/components/ui/animated-gradient-text";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ShineBorder } from "@/components/ui/shine-border";
@@ -21,6 +21,7 @@ import Image from "next/image";
 
 import { HomeNavItem } from "@/components/home-nav-item";
 import { UserProfile } from "@/components/user-profile";
+import { Playground } from "@/components/playground";
 
 export default async function HomePage() {
   const navItems = await getComputedNavigation();
@@ -29,7 +30,7 @@ export default async function HomePage() {
       <div className="w-full flex items-center gap-2 -mb-10 border-b bg-secondary py-2.5">
         <div className="container mx-auto w-full max-w-7xl flex items-center justify-between gap-2">
           <div className="flex items-center gap-1">
-            <Logo size="size-6" animated />
+            <Logo size="size-6" className="mr-4" animated />
 
             <Link href="/docs">
               <Button variant="link">
@@ -73,70 +74,56 @@ export default async function HomePage() {
           height={800}
         />
 
-        <div className="container relative z-10 mx-auto w-full max-w-6xl mt-10 md:mt-20 flex flex-col md:flex-row justify-between gap-8 md:gap-2 p-4 md:p-0">
-          <div className="flex flex-col gap-1 mt-4 md:mt-10">
-            <h1 className="text-xl md:text-4xl font-bold">Universal Platform for <AnimatedGradientText>Autonomous AI</AnimatedGradientText></h1>
+        <div className="container relative z-10 mx-auto w-full max-w-6xl mt-10 md:mt-20 flex flex-col md:flex-row p-4 md:p-0 gap-8 grid grid-cols-12">
+          <div className="flex flex-col gap-1 mt-4 md:mt-10 col-span-4">
+            <h1 className="text-xl md:text-3xl font-bold">Hire <AnimatedGradientText>AI Agents Instantly</AnimatedGradientText></h1>
             <p className="text-md text-muted-foreground max-w-xl">
-              Build, register, and discover autonomous agents with a developer-first platform. Open standards, federation-ready, and fully typed.
+              Chat with expert agents, host your own private fleet, or build the next unicorn with open protocols.
             </p>
             <CommandBox
               command="npx @open-hive/cli create first-agent"
               className="w-full max-w-sm mt-6"
             />
           </div>
-          <div className="flex flex-col gap-2 items-center md:items-end">
-            <Terminal className="w-[450px] shadow-lg">
-              <TypingAnimation className="text-xs">
-                $ npx @open-hive/cli create first-agent
-              </TypingAnimation>
-              <AnimatedSpan className="text-green-500 text-xs flex items-center gap-1">
-                Creating a new OpenHive agent:{" "}
-                <span className="text-blue-500">first-agent</span>
-              </AnimatedSpan>
-              <AnimatedSpan className="text-green-500 text-xs flex items-center gap-1">
-                ✔ Agent project created successfully!
-              </AnimatedSpan>
-            </Terminal>
+          <div className="flex flex-col gap-2 items-center col-span-8">
+            <Playground showAgentSelector className="h-[550px] " />
           </div>
         </div>
       </div>
 
       <div className="grid w-full max-w-6xl grid-cols-1 gap-8 mx-auto md:grid-cols-3 px-4 md:px-0">
         <Card className="relative w-full max-w-[350px] overflow-hidden mx-auto">
-          <ShineBorder shineColor={["#A07CFE", "#FE8FB5", "#FFBE7B"]} />
           <CardHeader className="items-center">
-            <CardTitle>Standardized Integration</CardTitle>
+            <Zap className="size-4 text-yellow-500 mb-2" />
+            <CardTitle>Instant Utility</CardTitle>
             <CardDescription>
-              Install agent capabilities with a single command. Type-safe,
-              generated code that you fully own.
+              Hire an agent instantly. No installation, no config. Just chat and get work done.
             </CardDescription>
           </CardHeader>
         </Card>
         <Card className="relative w-full max-w-[350px] overflow-hidden mx-auto">
-          <ShineBorder shineColor={["#A07CFE", "#FE8FB5", "#FFBE7B"]} />
           <CardHeader className="items-center">
-            <CardTitle>Global Discovery</CardTitle>
+            <ShieldCheck className="size-4 text-green-500 mb-2" />
+            <CardTitle>Private Control Plane</CardTitle>
             <CardDescription>
-              Find and connect with specialized agents across the open network.
-              Discovery, not just search.
+              Securely host internal agents. SOC2 ready with access control and auditing.
             </CardDescription>
           </CardHeader>
         </Card>
         <Card className="relative w-full max-w-[350px] overflow-hidden mx-auto">
-          <ShineBorder shineColor={["#A07CFE", "#FE8FB5", "#FFBE7B"]} />
           <CardHeader className="items-center">
-            <CardTitle>Verifiable Trust</CardTitle>
+            <Code className="size-4 text-blue-500 mb-2" />
+            <CardTitle>Code First</CardTitle>
             <CardDescription>
-              Interact with confidence using built-in decentralized identity
-              (DIDs) and granular permissioning.
+              Build with standard web technologies. You own the code, the data, and the deployment.
             </CardDescription>
           </CardHeader>
         </Card>
       </div>
 
       {/* Documentation Overview Section */}
-      <div className="container mx-auto w-full max-w-6xl grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-4 px-4 md:px-0">
-        <div className="flex flex-col gap-2">
+      <div className="container mx-auto w-full max-w-6xl grid grid-cols-1 md:grid-cols-3 gap-8 px-4 md:px-0">
+        <div className="flex flex-col gap-2 px-6">
           <h2 className="text-lg font-bold">Concepts</h2>
           <ul className="flex flex-col gap-1">
             <li className="text-primary hover:text-primary/80 cursor-pointer text-blue-500">
@@ -156,7 +143,7 @@ export default async function HomePage() {
             </li>
           </ul>
         </div>
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-2 px-6">
           <h2 className="text-lg font-bold">OpenHive Cloud</h2>
           <ul className="flex flex-col gap-1">
             <li className="text-primary hover:text-primary/80 cursor-pointer text-blue-500">
@@ -167,7 +154,7 @@ export default async function HomePage() {
             </li>
           </ul>
         </div>
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-2 px-6">
           <h2 className="text-lg font-bold">For Developers</h2>
           <ul className="flex flex-col gap-1">
             <li className="text-primary hover:text-primary/80 cursor-pointer text-blue-500">
@@ -185,10 +172,10 @@ export default async function HomePage() {
         </div>
       </div>
 
-      {/* Try it out Section */}
+      {/* Create an Agent Section */}
       <div className="container mx-auto w-full max-w-6xl">
         <h2 className="text-lg font-bold flex items-center gap-2">
-          Try it out{" "}
+          Create an Agent{" "}
           <Tooltip>
             <TooltipTrigger>
               <Info className="size-4 cursor-pointer text-primary" />
@@ -231,7 +218,17 @@ export default async function HomePage() {
             </TabsTrigger>
           </TabsList>
           <TabsContent value="start">
-            <Terminal className="w-full shadow-lg" startOnView={false}>
+            <Terminal className="w-full shadow-lg overflow-hidden" startOnView={false}>
+              <TypingAnimation className="text-xs">
+                $ npx @open-hive/cli create first-agent
+              </TypingAnimation>
+              <AnimatedSpan className="text-green-500 text-xs flex items-center gap-1">
+                Creating a new OpenHive agent:{" "}
+                <span className="text-blue-500">first-agent</span>
+              </AnimatedSpan>
+              <AnimatedSpan className="text-green-500 text-xs flex items-center gap-1">
+                ✔ Agent project created successfully!
+              </AnimatedSpan>
               <TypingAnimation className="text-xs">
                 $ cd first-agent && npm run dev
               </TypingAnimation>

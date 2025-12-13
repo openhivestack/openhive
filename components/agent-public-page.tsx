@@ -12,17 +12,16 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   ShieldCheck,
-  Activity,
-  Clock,
-  Copy,
   Check,
+  Copy,
+  Share2,
   ChevronDown,
   ChevronUp,
-  GlobeIcon,
-  MicIcon,
-  Lock,
+  Activity,
+  Clock,
 } from "lucide-react";
-import { useState, useRef, useEffect } from "react";
+import { Playground } from "@/components/playground";
+import { useState } from "react";
 import { DateTime } from "luxon";
 import {
   Tooltip,
@@ -33,43 +32,7 @@ import {
 import { cn } from "@/lib/utils";
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
-import { DefaultChatTransport } from "ai";
-import { useChat } from "@ai-sdk/react";
-import { authClient, useSession } from "@/lib/auth/client";
-import { useRouter } from "next/navigation";
-import { toast } from "sonner";
-import {
-  Conversation,
-  ConversationContent,
-  ConversationScrollButton,
-  ConversationEmptyState,
-} from "./ai-elements/conversation";
-import {
-  Message,
-  MessageContent,
-  MessageBranch,
-  MessageBranchContent,
-  MessageResponse
-} from "./ai-elements/message";
-import {
-  PromptInput,
-  PromptInputActionAddAttachments,
-  PromptInputActionMenu,
-  PromptInputActionMenuContent,
-  PromptInputActionMenuTrigger,
-  PromptInputAttachment,
-  PromptInputAttachments,
-  PromptInputBody,
-  PromptInputButton,
-  PromptInputSubmit,
-  PromptInputTextarea,
-  PromptInputFooter,
-  PromptInputHeader,
-  PromptInputTools,
-  PromptInputProvider,
-} from "./ai-elements/prompt-input";
 
-import { Suggestion, Suggestions } from "./ai-elements/suggestion";
 
 interface AgentPublicPageProps {
   agent: AgentDetail;
@@ -270,44 +233,8 @@ function CollapsibleCodeBlock({ code, language = "typescript", className }: Coll
 }
 
 export function AgentPublicPage({ agent }: AgentPublicPageProps) {
-  const { data: session, isPending } = useSession();
-  const router = useRouter();
+
   const [copied, setCopied] = useState(false);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-
-  // State for UI toggles (visual only for now, or future implementation)
-  const [useWebSearch, setUseWebSearch] = useState<boolean>(false);
-  const [useMicrophone, setUseMicrophone] = useState<boolean>(false);
-
-  const ownerSlug = agent.organization?.slug || agent.creator?.username || "-";
-  const { messages, sendMessage, status } = useChat({
-    transport: new DefaultChatTransport({
-      api: `/api/agent/${agent.name}/call`,
-    }),
-    onError: (e) => {
-      console.error("Chat error:", e);
-      toast.error("Failed to connect to agent: " + e.message);
-    },
-    onFinish: (message) => {
-      console.log("Chat finished:", message);
-    }
-  });
-
-  const isLoading = status === "submitted" || status === "streaming";
-
-  // Cold Start Feedback
-  useEffect(() => {
-    let timer: NodeJS.Timeout;
-    if (status === "submitted") {
-      timer = setTimeout(() => {
-        toast.info("Agent is waking up...", {
-          description: "This may take up to a minute for cold starts.",
-          duration: 10000,
-        });
-      }, 5000);
-    }
-    return () => clearTimeout(timer);
-  }, [status]);
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
@@ -324,10 +251,6 @@ export function AgentPublicPage({ agent }: AgentPublicPageProps) {
   // Suggestions logic (using agent prompts if available)
   const suggestions = (agent as any).prompts || [];
 
-  const handleSuggestionClick = (suggestion: string) => {
-    sendMessage({ role: "user", parts: [{ type: "text", text: suggestion }] });
-  };
-
   return (
     <div className="container mx-auto max-w-5xl py-8 px-4 space-y-8">
       {/* Header Section */}
@@ -337,14 +260,7 @@ export function AgentPublicPage({ agent }: AgentPublicPageProps) {
             <h1 className="scroll-m-20 text-2xl font-extrabold tracking-tight lg:text-2xl">
               {agent.name}
             </h1>
-            {agent.verificationStatus === "VERIFIED" && (
-              <Badge
-                variant="outline"
-                className="bg-primary/5 text-primary border-primary/20 gap-1"
-              >
-                <ShieldCheck className="size-3" /> Verified
-              </Badge>
-            )}
+            {/* Share Button */}
             <Badge variant="secondary" className="text-xs">
               v{agent.latestVersion || "0.0.1"}
             </Badge>
@@ -365,143 +281,11 @@ export function AgentPublicPage({ agent }: AgentPublicPageProps) {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
         <div className="md:col-span-3 space-y-14">
           <section className="space-y-4">
-            <h2 className="scroll-m-20 text-lg text-foreground/60 font-semibold tracking-tight first:mt-0 mb-2">
+            <h2 className="scroll-m-20 text-lg text-foreground/60 font-semibold tracking-tight first:mt-0 mb-2 flex items-center gap-2">
               Playground
             </h2>
-            <div className="flex flex-col w-full h-[650px] border border-border/50 rounded-xl bg-background/50 shadow-sm overflow-hidden relative">
-              {!session && !isPending && (
-                <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-zinc-950/60 backdrop-blur-sm p-6 text-center">
-                  <div className="p-4 rounded-full bg-zinc-900 mb-4 ring-1 ring-zinc-800">
-                    <Lock className="size-8 text-zinc-400" />
-                  </div>
-                  <h3 className="text-xl font-bold bg-gradient-to-br from-zinc-100 to-zinc-400 bg-clip-text text-transparent mb-2">
-                    Authentication Required
-                  </h3>
-                  <p className="text-muted-foreground max-w-[300px] mb-6">
-                    Please log in to access the playground and interact with this agent.
-                  </p>
-                  <Button
-                    onClick={() => router.push("/login")}
-                    className="min-w-[140px]"
-                  >
-                    Log In
-                  </Button>
-                </div>
-              )}
-              <Conversation className="pb-4">
-                <ConversationContent className="gap-8">
-                  {messages.length === 0 && (
-                    <ConversationEmptyState
-                      icon={<Activity className="size-8 text-muted-foreground/50" />}
-                      title="Ready to chat"
-                      description={`Start a conversation with ${agent.name}`}
-                    />
-                  )}
-                  {messages.map((m) => (
-                    <MessageBranch defaultBranch={0} key={m.id}>
-                      <MessageBranchContent>
-                        <Message from={m.role === "user" ? "user" : "assistant"}>
-                          <div>
-                            {/* Placeholder for sources/reasoning if/when provided by the API in compatible format */}
 
-                            <MessageContent className="bg-transparent shadow-none border-0 p-0">
-                              <MessageResponse>
-                                {m.parts
-                                  .filter((part) => part.type === "text")
-                                  .map((part) => (part as any).text)
-                                  .join("")}
-                              </MessageResponse>
-                            </MessageContent>
-                          </div>
-                        </Message>
-                      </MessageBranchContent>
-                    </MessageBranch>
-                  ))}
-                </ConversationContent>
-                <ConversationScrollButton />
-              </Conversation>
-
-              <div className="grid shrink-0 gap-4 pt-4 bg-background/50 backdrop-blur-sm">
-                {suggestions.length > 0 && messages.length === 0 && (
-                  <Suggestions className="px-4">
-                    {suggestions.map((suggestion: string) => (
-                      <Suggestion
-                        key={suggestion}
-                        onClick={() => handleSuggestionClick(suggestion)}
-                        suggestion={suggestion}
-                      />
-                    ))}
-                  </Suggestions>
-                )}
-
-                <div className="w-full p-2">
-                  <PromptInputProvider>
-                    <PromptInput
-                      globalDrop
-                      multiple
-                      onSubmit={async ({ text, files }) => {
-                        if (!text.trim() && (!files || files.length === 0)) return;
-
-                        const parts: any[] = [];
-                        if (text.trim()) {
-                          parts.push({ type: "text", text });
-                        }
-                        if (files) {
-                          parts.push(...files);
-                        }
-
-                        // Cast parts to match what UIMessage expects if necessary, 
-                        // though sendMessage handles this typically.
-                        sendMessage({ role: "user", parts } as any);
-                      }}
-                    >
-                      <PromptInputHeader>
-                        <PromptInputAttachments>
-                          {(attachment) => <PromptInputAttachment data={attachment} />}
-                        </PromptInputAttachments>
-                      </PromptInputHeader>
-                      <PromptInputBody>
-                        <PromptInputTextarea
-                          ref={textareaRef}
-                          placeholder="Message agent..."
-                          disabled={isLoading}
-                        />
-                      </PromptInputBody>
-                      <PromptInputFooter>
-                        <PromptInputTools>
-                          <PromptInputActionMenu>
-                            <PromptInputActionMenuTrigger />
-                            <PromptInputActionMenuContent>
-                              <PromptInputActionAddAttachments />
-                            </PromptInputActionMenuContent>
-                          </PromptInputActionMenu>
-
-                          {/* <PromptInputButton
-                            onClick={() => setUseMicrophone(!useMicrophone)}
-                            variant={useMicrophone ? "default" : "ghost"}
-                          >
-                            <MicIcon size={16} />
-                            <span className="sr-only">Microphone</span>
-                          </PromptInputButton>
-                          <PromptInputButton
-                            onClick={() => setUseWebSearch(!useWebSearch)}
-                            variant={useWebSearch ? "default" : "ghost"}
-                          >
-                            <GlobeIcon size={16} />
-                            <span>Search</span>
-                          </PromptInputButton> */}
-
-                        </PromptInputTools>
-                        <PromptInputSubmit
-                          status={status}
-                          disabled={isLoading}
-                        />
-                      </PromptInputFooter>
-                    </PromptInput>
-                  </PromptInputProvider>
-                </div>
-              </div>
-            </div>
+            <Playground initialAgent={agent} className="h-[550px]" showHistory={false} />
           </section>
 
           <section className="space-y-4">
@@ -715,6 +499,6 @@ export function AgentPublicPage({ agent }: AgentPublicPageProps) {
           </Card>
         </div>
       </div>
-    </div>
+    </div >
   );
 }

@@ -2,10 +2,20 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { QueryParser } from "@/lib/query-parser";
 import { validateAuth } from "@/lib/auth";
+import { globalRateLimiter } from "@/lib/rate-limit";
 
 export async function POST(req: NextRequest) {
   const { query, page = 1, limit = 20, scope } = await req.json();
   const auth = await validateAuth();
+
+  // Rate Limit Guests
+  if (!auth?.user) {
+    const ip = req.headers.get("x-forwarded-for") || "unknown";
+    const limit = globalRateLimiter.check(ip, 20); // 20 search req/min
+    if (!limit.success) {
+      return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+    }
+  }
 
   const pageNum = Math.max(1, parseInt(page));
   const limitNum = Math.max(1, Math.min(100, parseInt(limit)));

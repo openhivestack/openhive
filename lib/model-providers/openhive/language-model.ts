@@ -73,12 +73,15 @@ export class OpenHiveChatLanguageModel implements LanguageModelV2 {
 
             const role = (lastMessage.role === 'user' || lastMessage.role === 'system') ? 'user' : 'agent';
 
+            const contextId = headers["X-Conversation-Id"] || headers["x-conversation-id"];
+
             const sendParams: MessageSendParams = {
                 message: {
                     messageId: crypto.randomUUID(),
                     role: role as "user" | "agent",
                     parts: parts,
                     kind: "message",
+                    contextId: contextId,
                 }
             };
 
@@ -171,7 +174,7 @@ export class OpenHiveChatLanguageModel implements LanguageModelV2 {
                     finishReason: result.finishReason,
                     usage: result.usage,
                 });
-                
+
                 controller.close();
             }
         });

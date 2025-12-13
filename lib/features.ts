@@ -57,6 +57,7 @@ export async function isFeatureEnabled(featureName: string): Promise<boolean> {
 export enum Display {
   Home = "home",
   Sidebar = "sidebar",
+  SubHeader = "subheader",
 }
 
 export interface NavItem {
@@ -99,7 +100,10 @@ export async function getComputedNavigation(baseItems: NavItem[] = defaultNavIte
   for (const key in allFeatures) {
     const feature = allFeatures[key];
     if (feature.enabled && feature.navigation) {
-      featureItems.push(feature.navigation);
+      // Only add to sidebar if explicitly configured for it
+      if (feature.navigation.display.includes(Display.Sidebar)) {
+        featureItems.push(feature.navigation);
+      }
     }
   }
 
@@ -126,4 +130,20 @@ export async function getFilteredNavigation(user: any): Promise<NavItem[]> {
     }
     return true;
   });
+}
+
+export async function getFeatureNavigation(display?: Display): Promise<NavItem[]> {
+  const allFeatures = await loadFeatures();
+  const items: NavItem[] = [];
+
+  for (const key in allFeatures) {
+    const feature = allFeatures[key];
+    if (feature.enabled && feature.navigation) {
+      if (!display || feature.navigation.display.includes(display)) {
+        items.push(feature.navigation);
+      }
+    }
+  }
+
+  return items;
 }

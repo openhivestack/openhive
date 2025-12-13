@@ -2,8 +2,9 @@
 
 import { cn } from "@/lib/utils";
 import Link from "next/link";
+import { DynamicIcon } from 'lucide-react/dynamic';
 import { Button } from "@/components/ui/button";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import {
   CircleQuestionMark,
   Code,
@@ -32,18 +33,18 @@ export interface Tab {
   key: string;
   label: string;
   href: string;
-  icon: React.ElementType;
+  icon: string;
   disabled?: boolean;
   hidden?: boolean;
 }
 
 const defaultTabs: Tab[] = [
-  { label: "Agents", href: "/agent/list", key: "agent", icon: Bot },
+  { label: "Agents", href: "/agent/list", key: "agent", icon: "bot" },
   {
     label: "Settings",
     href: "/settings",
     key: "settings",
-    icon: Settings,
+    icon: "settings",
   },
 ];
 
@@ -55,6 +56,18 @@ export function SubHeader({
   tabs = defaultTabs,
 }: SubHeaderProps) {
   const router = useRouter();
+  const pathname = usePathname();
+
+  const currentActiveTab = activeTab || tabs?.reduce((best, tab) => {
+    // Check for exact match or prefix match with slash
+    if (tab.href === pathname || pathname.startsWith(`${tab.href}/`)) {
+      // Pick the longest matching href (most specific)
+      if (!best || tab.href.length > best.href.length) {
+        return tab;
+      }
+    }
+    return best;
+  }, undefined as Tab | undefined)?.key;
 
   const handleTabClick = (tab: Tab) => (e: any) => {
     e.preventDefault();
@@ -77,8 +90,8 @@ export function SubHeader({
               onClick={handleTabClick(tab)}
               className={cn(
                 "flex items-center gap-1 text-sm font-medium text-muted-foreground hover:text-primary transition-colors border-b-2 border-transparent py-1",
-                activeTab?.toLowerCase() === tab.key.toLowerCase() &&
-                  "border-primary text-primary"
+                currentActiveTab?.toLowerCase() === tab.key.toLowerCase() &&
+                "border-primary text-primary"
               )}
             >
               {tab.disabled && !tab.hidden && (
@@ -93,7 +106,7 @@ export function SubHeader({
                       )}
                       onClick={(e) => e.preventDefault()}
                     >
-                      {tab.icon && <tab.icon className="w-4 h-4" />}
+                      {tab.icon && <DynamicIcon name={tab.icon as any} className="w-4 h-4" />}
                       {tab.label}
                     </Button>
                   </TooltipTrigger>
@@ -107,11 +120,11 @@ export function SubHeader({
                   onClick={handleTabClick(tab)}
                   className={cn(
                     '!px-4 cursor-pointer flex items-center gap-1 text-sm font-medium text-muted-foreground hover:text-primary hover:bg-accent rounded-sm px-2 transition-colors py-1',
-                    activeTab?.toLowerCase() === tab.key.toLowerCase() &&
-                      'text-primary'
+                    currentActiveTab?.toLowerCase() === tab.key.toLowerCase() &&
+                    'text-primary'
                   )}
                 >
-                  {tab.icon && <tab.icon className="w-4 h-4" />}
+                  {tab.icon && <DynamicIcon name={tab.icon as any} className="w-4 h-4" />}
                   {tab.label}
                 </div>
               )}

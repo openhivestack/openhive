@@ -1,11 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { validateAuth } from "@/lib/auth";
+import { globalRateLimiter } from "@/lib/rate-limit";
 
 export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ agentName: string }> }
 ) {
   const { agentName } = await params;
+  const auth = await validateAuth();
+
+  // Rate Limit Guests
+  if (!auth?.user) {
+    const ip = req.headers.get("x-forwarded-for") || "unknown";
+    const limit = globalRateLimiter.check(ip, 20); // 20 profile req/min
+    if (!limit.success) {
+      return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+    }
+  }
 
   const agent = await prisma.agent.findUnique({
     where: { name: agentName },

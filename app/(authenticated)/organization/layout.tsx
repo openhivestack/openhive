@@ -1,47 +1,53 @@
-"use client";
-
+import { getFeatureNavigation, Display } from "@/lib/features";
 import { ReactNode } from "react";
 import { Header } from "@/components/header";
 import { SubHeader, Tab } from "@/components/sub-header";
-import { Building2, Users, Settings, Briefcase } from "lucide-react";
-import { usePathname } from "next/navigation";
 
-export default function OrganizationLayout({ children }: { children: ReactNode }) {
-  const pathname = usePathname();
-  // Simple logic to find active tab, can be refined if tabs have sub-routes
-  const activeTab = pathname.split("/").pop() === "organization" ? "overview" : pathname.split("/").pop();
+export default async function OrganizationLayout({ children }: { children: ReactNode }) {
+  const featureTabs = await getFeatureNavigation(Display.SubHeader);
 
   const tabs: Tab[] = [
     {
       label: "Overview",
       href: "/organization",
       key: "overview",
-      icon: Building2,
+      icon: "building-2",
     },
     {
       label: "Members",
       href: "/organization/members",
       key: "members",
-      icon: Users,
+      icon: "users",
     },
     {
       label: "Teams",
       href: "/organization/team",
       key: "team",
-      icon: Briefcase,
-    },
-    {
-      label: "Settings",
-      href: "/organization/settings",
-      key: "settings",
-      icon: Settings,
+      icon: "briefcase",
     },
   ];
+
+  // Map feature tabs
+  featureTabs.forEach(feature => {
+    tabs.push({
+      label: feature.name,
+      href: feature.url,
+      key: feature.name.toLowerCase(),
+      icon: feature.icon
+    });
+  });
+
+  tabs.push({
+    label: "Settings",
+    href: "/organization/settings",
+    key: "settings",
+    icon: "settings",
+  });
 
   return (
     <div>
       <Header />
-      <SubHeader activeTab={activeTab || 'overview'} tabs={tabs} />
+      <SubHeader tabs={tabs} />
       <div className="container mx-auto py-6">
         {children}
       </div>

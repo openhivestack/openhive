@@ -12,8 +12,10 @@ import {
   bearer,
   organization,
   username,
+  apiKey, // Added apiKey import
 } from "better-auth/plugins";
-import { apiKey } from "better-auth/plugins";
+import { stripe } from "@better-auth/stripe";
+import { stripe as stripeClient } from "@/ee/lib/stripe";
 
 // Session type from better-auth
 export type UserSession = {
@@ -65,8 +67,30 @@ async function createAuth() {
     if (eeModule?.eeAuthConfig?.plugins) {
       plugins = [...plugins, ...eeModule.eeAuthConfig.plugins];
     }
+
+    // Check for Billing Feature Flag
+    // @ts-ignore
+    const { eeFeatures } = await import("@/ee/lib/features");
+    if (eeFeatures?.billing?.enabled) {
+      plugins.push(
+        stripe({
+          stripeClient,
+          stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET!,
+          createCustomerOnSignUp: false, // Disabled to prevent duplicates, handled via hooks
+          subscription: {
+            enabled: true,
+            plans: [
+              {
+                name: "pro",
+                priceId: process.env.STRIPE_PRO_PRICE_ID!,
+              }
+            ]
+          }
+        })
+      );
+    }
   } catch (e) {
-    // Ignore missing EE module
+    // Ignore missing EE module or features
   }
 
   return betterAuth({
@@ -81,14 +105,49 @@ async function createAuth() {
       provider: "postgresql",
     }),
     databaseHooks: {
-      user: {},
+      user: {
+        create: {
+          before: async (user) => {
+            if (!user.email) return;
+            try {
+              const existingCustomers = await stripeClient.customers.list({ email: user.email, limit: 1 });
+              let customerId;
+
+              if (existingCustomers.data.length > 0) {
+                customerId = existingCustomers.data[0].id;
+              } else {
+                const newCustomer = await stripeClient.customers.create({
+                  email: user.email,
+                  name: user.name ?? undefined,
+                  metadata: {
+                    userId: user.id
+                  }
+                });
+                customerId = newCustomer.id;
+              }
+
+              return {
+                data: {
+                  ...user,
+                  stripeCustomerId: customerId
+                }
+              }
+            } catch (e) {
+              console.error("Failed to create/link Stripe customer", e);
+              // Continue creation without linking? Or throw?
+              // Better to continue and maybe retry later or handle error.
+              // For now, log error.
+            }
+          }
+        }
+      },
     },
     socialProviders,
     emailAndPassword: {
       enabled: true,
     },
-    plugins: plugins as typeof defaultPlugins,
-  });
+    plugins: plugins,
+  }) as any;
 }
 
 // Export the auth instance (top-level await)
@@ -97,7 +156,7 @@ export const auth = await createAuth();
 export type ValidationResult = {
   session: {
     user: User;
-    session: Session;
+    session: Session & { activeOrganizationId?: string | null };
   } | null;
   user: User | null;
   type: "session" | "api-key";

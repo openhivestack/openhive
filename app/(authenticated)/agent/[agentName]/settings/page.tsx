@@ -31,14 +31,42 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Spinner } from "@/components/ui/spinner";
+import { Switch } from "@/components/ui/switch";
+import { updateAgentVisibility } from "@/ee/lib/actions/agent";
+import { Lock, Globe, AlertTriangle } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { useTransition } from "react";
 
 export default function SettingsPage() {
   const params = useParams();
   const agentName = params.agentName as string;
 
-  const { agent, loading: isLoading } = useAgent();
+  const { agent, loading: isLoading, features } = useAgent();
   const [isDeleting, setIsDeleting] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isPending, startTransition] = useTransition();
+
+  const isPrivate = !agent?.isPublic;
+
+  const handleVisibilityToggle = (checked: boolean) => {
+    if (!agent) return;
+    const newIsPublic = !checked;
+
+    startTransition(async () => {
+      try {
+        await updateAgentVisibility(agent.name, newIsPublic);
+        // await refetch(); // SWR revalidates on focus, or we can force it if useAgent exposed it. 
+        // useAgent exposes refetch!
+        toast.success(
+          newIsPublic
+            ? "Agent is now Public! 🌍"
+            : "Agent is now Private. 🔒"
+        );
+      } catch (error: any) {
+        toast.error(error.message || "Failed to update visibility");
+      }
+    });
+  };
 
   const handleDelete = async () => {
     setIsDeleting(true);
@@ -143,6 +171,46 @@ export default function SettingsPage() {
         </CardFooter>
       </Card>
 
+
+      {features?.billing && (
+        <Card className="border-destructive/10">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-sm">
+              Visibility
+              {isPrivate ? <Lock className="size-4 text-orange-500" /> : <Globe className="size-4 text-green-500" />}
+            </CardTitle>
+            <CardDescription>
+              Control who can see and use this agent.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between space-x-2 border p-4 rounded-lg bg-background/50">
+              <div className="space-y-0.5">
+                <Label className="text-base">Private Agent</Label>
+                <p className="text-sm text-muted-foreground">
+                  Restricts access to only members of your organization.
+                </p>
+              </div>
+              <Switch
+                checked={isPrivate}
+                onCheckedChange={handleVisibilityToggle}
+                disabled={isPending || isLoading}
+              />
+            </div>
+
+            {agent?.organizationId && !isPrivate && (
+              <Alert>
+                <AlertTriangle className="h-4 w-4" />
+                <AlertTitle>Billing Note</AlertTitle>
+                <AlertDescription>
+                  Making an agent private requires an active Pro subscription for your organization.
+                </AlertDescription>
+              </Alert>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
       <Card className="pb-0 gap-4 border-destructive">
         <CardHeader>
           <CardTitle className="text-sm text-destructive">
@@ -209,6 +277,6 @@ export default function SettingsPage() {
           </Dialog>
         </CardFooter>
       </Card>
-    </div>
+    </div >
   );
 }

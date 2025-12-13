@@ -12,9 +12,10 @@ export async function handleAgentRequest(
 ) {
 
   // 1. Auth is now handled by the caller (route handler) passing 'user' arg
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  // 1. Auth: We allow guests now (user can be null)
+  // if (!user) {
+  //   return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  // }
 
   const start = Date.now();
 
@@ -114,8 +115,8 @@ export async function handleAgentRequest(
       requestHeaders["x-openhive-gateway-secret"] = process.env.GATEWAY_SECRET;
     }
     requestHeaders["x-openhive-agent-port"] = "4000";
-    requestHeaders["X-OpenHive-User-Id"] = user.id;
-    requestHeaders["X-OpenHive-User-Email"] = user.email;
+    requestHeaders["X-OpenHive-User-Id"] = user?.id || "guest";
+    requestHeaders["X-OpenHive-User-Email"] = user?.email || "guest@openhive.local";
 
     // Attempt to inspect body for Task ID if JSON
     let body: any = req.body;

@@ -27,6 +27,7 @@ model User {
 
   members     Member[]
   invitations Invitation[]
+  conversations Conversation[]
 
   stripeCustomerId String?
 
@@ -200,6 +201,9 @@ model Agent {
   verificationStatus String   @default("UNVERIFIED") // "UNVERIFIED", "PENDING", "VERIFIED", "REJECTED"
   verifiedAt         DateTime?
 
+  // Inverse Relations
+  conversations Conversation[]
+
   // Profile (Detached Identity)
   profile     AgentProfile?
 
@@ -280,19 +284,72 @@ model AgentExecution {
   @@map("agentExecution")
 }
 
+
+// --- B2C CONVERSATION MODELS ---
+
+model Conversation {
+  id        String   @id @default(cuid())
+  title     String?
+  userId    String?  // Nullable for Guest Mode
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  
+  agentName String
+  agent     Agent    @relation(fields: [agentName], references: [name], onDelete: Cascade)
+  
+  messages  Message[]
+  
+  isPublic  Boolean  @default(false) // For "Share" feature
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([agentName])
+  @@map("conversation")
+}
+
+model Message {
+  id             String       @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  
+  // AI SDK Compatibility: 'system' | 'user' | 'assistant' | 'data'
+  role           String       
+  
+  // Storage for standard text or AI SDK 'parts' (MessagePart[])
+  content        Json         
+  
+  // Additional metadata (e.g. usage tokens, annotations, toolInternalIds)
+  metadata       Json?
+  
+  createdAt      DateTime     @default(now())
+
+  @@index([conversationId])
+  @@map("message")
+}
+
+
+// --- BILLING MODELS ---
+
 model Subscription {
-  id                   String    @id
+  id                   String    @id @default(cuid())
   plan                 String
-  referenceId          String
+  referenceId          String    // Linked to Organization.id or User.id
   stripeCustomerId     String?
   stripeSubscriptionId String?
   status               String?
   periodStart          DateTime?
   periodEnd            DateTime?
+  cancelAtPeriodEnd    Boolean?  @default(false)
+  seats                Int?      @default(1)
   trialStart           DateTime?
   trialEnd             DateTime?
-  cancelAtPeriodEnd    Boolean?  @default(false)
-  seats                Int?
+  
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
 
+  @@index([referenceId])
+  @@index([stripeCustomerId])
   @@map("subscription")
 }
+

@@ -18,11 +18,21 @@ export const eeFeatures: Record<string, FeatureConfig> = {
     enabled: true,
     description: "System Administration",
     navigation: {
-        name: "System",
-        url: "/system",
-        icon: "layout-dashboard",
-        display: [Display.Sidebar],
-        scopes: ["root"],
+      name: "System",
+      url: "/system",
+      icon: "layout-dashboard",
+      display: [Display.Sidebar],
+      scopes: ["root"],
+    }
+  },
+  billing: {
+    enabled: process.env.NEXT_PUBLIC_ENABLE_BILLING === 'true',
+    description: "Billing & Subscriptions",
+    navigation: {
+      name: "Billing",
+      url: "/organization/billing",
+      icon: "credit-card",
+      display: [Display.SubHeader],
     }
   }
   // Add other EE-only features here

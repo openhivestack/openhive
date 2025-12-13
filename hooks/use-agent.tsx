@@ -26,6 +26,7 @@ interface AgentContextType {
   mutateRuntime: KeyedMutator<any>;
   isOwner: boolean;
   currentUser: User | null;
+  features: Record<string, boolean>;
 }
 
 const AgentContext = createContext<AgentContextType | undefined>(undefined);
@@ -33,9 +34,10 @@ const AgentContext = createContext<AgentContextType | undefined>(undefined);
 interface AgentProviderProps {
   children: ReactNode;
   agentName: string;
+  features?: Record<string, boolean>;
 }
 
-export function AgentProvider({ children, agentName }: AgentProviderProps) {
+export function AgentProvider({ children, agentName, features = {} }: AgentProviderProps) {
   const [agent, setAgent] = useState<AgentDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
@@ -135,6 +137,7 @@ export function AgentProvider({ children, agentName }: AgentProviderProps) {
         mutateRuntime,
         isOwner,
         currentUser: currentUser || null,
+        features,
       }}
     >
       {children}
