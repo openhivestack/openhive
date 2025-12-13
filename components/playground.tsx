@@ -189,7 +189,7 @@ function AgentChat({ agent, session, initialConversationId, initialMessages = []
         <ConversationScrollButton />
       </Conversation>
 
-      <div className="grid shrink-0 gap-4 pt-4 rounded-b-xl bg-background/50 backdrop-blur-sm px-4 pb-4">
+      <div className="grid shrink-0 gap-4 pt-2 rounded-b-xl bg-background/50 backdrop-blur-sm px-2 pb-2">
         {suggestions.length > 0 && messages.length === 0 && (
           <Suggestions>
             {suggestions.map((suggestion: string) => (
@@ -461,6 +461,7 @@ export function Playground({ initialAgent, showAgentSelector = false, className,
                           onSelect={(currentValue) => {
                             if (currentValue !== agent?.name) {
                               setAgent(a);
+                              handleNewChat();
                             }
                             setOpenSelector(false);
                           }}
